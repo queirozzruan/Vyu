@@ -13,6 +13,12 @@ export const els = {
   zoomInBtn: document.getElementById('zoom-in-btn'),
   zoomOutBtn: document.getElementById('zoom-out-btn'),
   zoomValue: document.getElementById('zoom-value'),
+  fitModeBtn: document.getElementById('fit-mode-btn'),
+  fitModeLabel: document.getElementById('fit-mode-label'),
+  firstPageBtn: document.getElementById('first-page-btn'),
+  lastPageBtn: document.getElementById('last-page-btn'),
+  readerPageSlider: document.getElementById('reader-page-slider'),
+  readerProgressText: document.getElementById('reader-progress-text'),
 
   pageStage: document.getElementById('page-stage'),
   pageImage: document.getElementById('page-image'),

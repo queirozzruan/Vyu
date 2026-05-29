@@ -1,6 +1,6 @@
 import { rememberRecentItem, state } from '../store/state.js';
 import { els, setLoading, hideLoading, switchScreen } from '../utils/dom.js';
-import { updateHeader, updateNavButtons, updateZoomLabel, resetView, updateTransform } from '../components/readerRenderer.js';
+import { updateFitModeLabel, updateHeader, updateNavButtons, updateZoomLabel, resetView, updateTransform } from '../components/readerRenderer.js';
 
 export function clamp(value, min, max) {
   return Math.min(Math.max(value, min), max);
@@ -74,9 +74,13 @@ export async function renderCurrentPage() {
   updateHeader();
   updateNavButtons();
 
-  if (state.rendering) return;
+  if (state.rendering) {
+    state.pendingRender = true;
+    return;
+  }
 
   state.rendering = true;
+  state.pendingRender = false;
   state.pageVersion += 1;
   const requestVersion = state.pageVersion;
 
@@ -92,6 +96,7 @@ export async function renderCurrentPage() {
       state.currentImageNaturalWidth = els.pageImage.naturalWidth;
       state.currentImageNaturalHeight = els.pageImage.naturalHeight;
       hideLoading();
+      preloadAdjacentImage();
     } else if (state.kind === 'pdf') {
       setLoading('Renderizando PDF...');
       await renderPdfPage(state.currentPageIndex + 1, requestVersion);
@@ -101,7 +106,21 @@ export async function renderCurrentPage() {
     setLoading(`Erro ao renderizar pagina: ${error.message}`);
   } finally {
     state.rendering = false;
+    if (state.pendingRender) {
+      state.pendingRender = false;
+      renderCurrentPage();
+    }
   }
+}
+
+export function preloadAdjacentImage() {
+  if (state.kind !== 'images') return;
+
+  const nextPage = state.imagePages[state.currentPageIndex + 1] || state.imagePages[state.currentPageIndex - 1];
+  if (!nextPage?.src) return;
+
+  const image = new Image();
+  image.src = nextPage.src;
 }
 
 export async function loadComicFromPath(filePath) {
@@ -114,6 +133,7 @@ export async function loadComicFromPath(filePath) {
     rememberRecentItem({ filePath, title: result.title });
     state.currentPageIndex = 0;
     state.zoom = 1;
+    state.fitMode = 'height';
     state.imagePages = [];
     state.pdfDocument = null;
 
@@ -132,7 +152,9 @@ export async function loadComicFromPath(filePath) {
     }
 
     updateZoomLabel();
+    updateFitModeLabel();
     await renderCurrentPage();
+    els.pageStage?.focus();
   } catch (error) {
     setLoading(`Falha ao abrir HQ: ${error.message}`);
     updateHeader();
@@ -146,17 +168,21 @@ export async function pickAndOpenComic() {
 }
 
 export function goToNextPage() {
-  if (state.currentPageIndex < state.totalPages - 1) {
-    state.currentPageIndex += 1;
-    renderCurrentPage();
-  }
+  goToPage(state.currentPageIndex + 2);
 }
 
 export function goToPreviousPage() {
-  if (state.currentPageIndex > 0) {
-    state.currentPageIndex -= 1;
-    renderCurrentPage();
-  }
+  goToPage(state.currentPageIndex);
+}
+
+export function goToPage(pageNumber) {
+  if (state.totalPages === 0) return;
+
+  const nextIndex = clamp(Math.round(pageNumber) - 1, 0, state.totalPages - 1);
+  if (nextIndex === state.currentPageIndex) return;
+
+  state.currentPageIndex = nextIndex;
+  renderCurrentPage();
 }
 
 export function setZoom(newZoom) {
@@ -165,4 +191,10 @@ export function setZoom(newZoom) {
   state.zoom = zoom;
   updateZoomLabel();
   updateTransform();
+}
+
+export function toggleFitMode() {
+  state.fitMode = state.fitMode === 'height' ? 'width' : 'height';
+  updateFitModeLabel();
+  resetView();
 }

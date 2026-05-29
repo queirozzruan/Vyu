@@ -4,8 +4,17 @@ import { els } from '../utils/dom.js';
 export function updateTransform() {
   const content = els.pageImage;
   if (content) {
-    content.style.height = `${state.zoom * 100}vh`;
-    content.style.width = 'auto';
+    const stageWidth = Math.max(320, (els.pageStage?.clientWidth || window.innerWidth) - 192);
+    const stageHeight = Math.max(360, (els.pageStage?.clientHeight || window.innerHeight) - 150);
+
+    if (state.fitMode === 'width') {
+      content.style.width = `${Math.round(stageWidth * state.zoom)}px`;
+      content.style.height = 'auto';
+    } else {
+      content.style.height = `${Math.round(stageHeight * state.zoom)}px`;
+      content.style.width = 'auto';
+    }
+
     content.style.maxWidth = 'none';
   }
 }
@@ -25,10 +34,21 @@ export function updateHeader() {
   const pCurrent = String(current).padStart(3, '0');
   const pTotal = String(state.totalPages).padStart(3, '0');
   els.readerPageCounter.textContent = `P. ${pCurrent} / ${pTotal}`;
+  const percentage = state.totalPages === 0 ? 0 : (current / state.totalPages) * 100;
   
   if (els.readerProgressBar) {
-    const percentage = state.totalPages === 0 ? 0 : (current / state.totalPages) * 100;
     els.readerProgressBar.style.height = `${percentage}%`;
+  }
+
+  if (els.readerPageSlider) {
+    els.readerPageSlider.max = String(Math.max(state.totalPages, 1));
+    els.readerPageSlider.value = String(Math.max(current, 1));
+    els.readerPageSlider.disabled = state.totalPages === 0;
+    els.readerPageSlider.style.setProperty('--reader-progress', `${percentage}%`);
+  }
+
+  if (els.readerProgressText) {
+    els.readerProgressText.textContent = `${Math.round(percentage)}%`;
   }
 }
 
@@ -36,8 +56,19 @@ export function updateZoomLabel() {
   els.zoomValue.textContent = `${Math.round(state.zoom * 100)}%`;
 }
 
+export function updateFitModeLabel() {
+  const isWidth = state.fitMode === 'width';
+  if (els.fitModeLabel) els.fitModeLabel.textContent = isWidth ? 'Largura' : 'Altura';
+  if (els.fitModeBtn) {
+    els.fitModeBtn.title = isWidth ? 'Ajustar pela altura' : 'Ajustar pela largura';
+    els.fitModeBtn.setAttribute('aria-pressed', String(isWidth));
+  }
+}
+
 export function updateNavButtons() {
   const noPages = state.totalPages === 0;
   els.prevBtn.disabled = noPages || state.currentPageIndex <= 0;
   els.nextBtn.disabled = noPages || state.currentPageIndex >= state.totalPages - 1;
+  if (els.firstPageBtn) els.firstPageBtn.disabled = noPages || state.currentPageIndex <= 0;
+  if (els.lastPageBtn) els.lastPageBtn.disabled = noPages || state.currentPageIndex >= state.totalPages - 1;
 }
