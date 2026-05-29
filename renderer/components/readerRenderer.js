@@ -36,10 +36,6 @@ export function updateHeader() {
   els.readerPageCounter.textContent = `P. ${pCurrent} / ${pTotal}`;
   const percentage = state.totalPages === 0 ? 0 : (current / state.totalPages) * 100;
   
-  if (els.readerProgressBar) {
-    els.readerProgressBar.style.height = `${percentage}%`;
-  }
-
   if (els.readerPageSlider) {
     els.readerPageSlider.max = String(Math.max(state.totalPages, 1));
     els.readerPageSlider.value = String(Math.max(current, 1));
@@ -47,9 +43,6 @@ export function updateHeader() {
     els.readerPageSlider.style.setProperty('--reader-progress', `${percentage}%`);
   }
 
-  if (els.readerProgressText) {
-    els.readerProgressText.textContent = `${Math.round(percentage)}%`;
-  }
 }
 
 export function updateZoomLabel() {
@@ -58,7 +51,6 @@ export function updateZoomLabel() {
 
 export function updateFitModeLabel() {
   const isWidth = state.fitMode === 'width';
-  if (els.fitModeLabel) els.fitModeLabel.textContent = isWidth ? 'Largura' : 'Altura';
   if (els.fitModeBtn) {
     els.fitModeBtn.title = isWidth ? 'Ajustar pela altura' : 'Ajustar pela largura';
     els.fitModeBtn.setAttribute('aria-pressed', String(isWidth));
@@ -69,6 +61,4 @@ export function updateNavButtons() {
   const noPages = state.totalPages === 0;
   els.prevBtn.disabled = noPages || state.currentPageIndex <= 0;
   els.nextBtn.disabled = noPages || state.currentPageIndex >= state.totalPages - 1;
-  if (els.firstPageBtn) els.firstPageBtn.disabled = noPages || state.currentPageIndex <= 0;
-  if (els.lastPageBtn) els.lastPageBtn.disabled = noPages || state.currentPageIndex >= state.totalPages - 1;
 }

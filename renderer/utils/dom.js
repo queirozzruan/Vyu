@@ -14,11 +14,7 @@ export const els = {
   zoomOutBtn: document.getElementById('zoom-out-btn'),
   zoomValue: document.getElementById('zoom-value'),
   fitModeBtn: document.getElementById('fit-mode-btn'),
-  fitModeLabel: document.getElementById('fit-mode-label'),
-  firstPageBtn: document.getElementById('first-page-btn'),
-  lastPageBtn: document.getElementById('last-page-btn'),
   readerPageSlider: document.getElementById('reader-page-slider'),
-  readerProgressText: document.getElementById('reader-progress-text'),
 
   pageStage: document.getElementById('page-stage'),
   pageImage: document.getElementById('page-image'),
@@ -27,7 +23,6 @@ export const els = {
   
   readerSeries: document.getElementById('reader-series'),
   readerPageCounter: document.getElementById('reader-page-counter'),
-  readerProgressBar: document.getElementById('reader-progress-bar'),
 
   libraryViewTabs: document.getElementById('library-view-tabs'),
   libraryViewTitle: document.getElementById('library-view-title'),

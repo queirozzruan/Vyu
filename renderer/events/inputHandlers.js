@@ -54,7 +54,7 @@ export function setupInputHandlers(onComicOpen) {
     wakeReaderUi();
     if (event.ctrlKey) {
       event.preventDefault();
-      const step = event.deltaY < 0 ? 0.15 : -0.15;
+      const step = event.deltaY < 0 ? 0.2 : -0.2;
       setZoom(state.zoom + step);
     }
   }, { passive: false });
@@ -77,11 +77,9 @@ export function setupInputHandlers(onComicOpen) {
   });
   els.prevBtn.addEventListener('click', goToPreviousPage);
   els.nextBtn.addEventListener('click', goToNextPage);
-  els.zoomInBtn.addEventListener('click', () => setZoom(state.zoom + 0.1));
-  els.zoomOutBtn.addEventListener('click', () => setZoom(state.zoom - 0.1));
+  els.zoomInBtn.addEventListener('click', () => setZoom(state.zoom + 0.2));
+  els.zoomOutBtn.addEventListener('click', () => setZoom(state.zoom - 0.2));
   els.fitModeBtn?.addEventListener('click', toggleFitMode);
-  els.firstPageBtn?.addEventListener('click', () => goToPage(1));
-  els.lastPageBtn?.addEventListener('click', () => goToPage(state.totalPages));
   els.readerPageSlider?.addEventListener('change', (event) => {
     goToPage(Number(event.target.value));
   });
