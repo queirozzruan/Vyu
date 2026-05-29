@@ -1,4 +1,4 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html class="dark" lang="pt-BR">
 
 <head>
@@ -7,60 +7,197 @@
   <title>MHQViewer</title>
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Manrope:wght@500;700;800&display=swap" rel="stylesheet" />
+  <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,600;9..144,700&family=IBM+Plex+Sans:wght@400;500;600;700&display=swap" rel="stylesheet" />
   <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap" rel="stylesheet" />
+
+  <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+  <script id="tailwind-config">
+    tailwind.config = {
+      darkMode: "class",
+      theme: {
+        extend: {
+          colors: {
+            "on-error-container": "#ffdad6", "on-surface": "#e2e2e2", "primary-fixed-dim": "#454747",
+            "on-surface-variant": "#c6c6c6", "on-primary-container": "#000000", "on-error": "#690005",
+            "outline": "#919191", "on-primary": "#1a1c1c", "surface": "#131313", "on-secondary": "#1b1c1c",
+            "surface-bright": "#393939", "surface-container-high": "#2a2a2a", "inverse-on-surface": "#303030",
+            "on-background": "#e2e2e2", "background": "#131313", "tertiary-fixed": "#5f5e5e",
+            "primary-container": "#d4d4d4", "secondary-fixed": "#c8c6c5", "inverse-primary": "#5d5f5f",
+            "primary-fixed": "#5d5f5f", "on-tertiary-container": "#000000", "secondary": "#c8c6c5",
+            "on-tertiary-fixed-variant": "#e5e2e1", "tertiary": "#e5e2e1", "surface-tint": "#c6c6c7",
+            "surface-container-low": "#1b1b1b", "tertiary-container": "#929090", "error": "#ffb4ab",
+            "tertiary-fixed-dim": "#474646", "primary": "#ffffff", "on-tertiary-fixed": "#ffffff",
+            "on-tertiary": "#1c1b1b", "surface-container": "#1f1f1f", "error-container": "#93000a",
+            "on-secondary-fixed-variant": "#3b3b3b", "surface-variant": "#353535", "on-primary-fixed-variant": "#e2e2e2",
+            "surface-container-highest": "#353535", "on-secondary-fixed": "#1b1c1c", "on-secondary-container": "#e4e2e1",
+            "outline-variant": "#474747", "inverse-surface": "#e2e2e2", "on-primary-fixed": "#ffffff",
+            "secondary-fixed-dim": "#acabaa", "surface-dim": "#131313", "secondary-container": "#474746",
+            "surface-container-lowest": "#0e0e0e"
+          },
+          fontFamily: { "headline": ["Fraunces"], "body": ["IBM Plex Sans"], "label": ["IBM Plex Sans"] },
+        },
+      },
+    }
+  </script>
+  <style>
+    .material-symbols-outlined {
+      font-variation-settings: 'FILL' 0, 'wght' 300, 'GRAD' 0, 'opsz' 24;
+      display: inline-block;
+      line-height: 1;
+    }
+
+    .custom-scrollbar::-webkit-scrollbar {
+      width: 4px;
+    }
+
+    .custom-scrollbar::-webkit-scrollbar-track {
+      background: transparent;
+    }
+
+    .custom-scrollbar::-webkit-scrollbar-thumb {
+      background: #353535;
+      border-radius: 10px;
+    }
+
+    .manga-page-shadow {
+      box-shadow: 0 0 100px rgba(0, 0, 0, 0.9);
+    }
+  </style>
   <link rel="stylesheet" href="./style.css" />
 </head>
 
 <body>
   <div id="app">
-    <section id="home-screen" class="screen active">
-      <div class="home-overlay"></div>
-      <div class="home-content">
-        <h1 class="home-title">MHQViewer</h1>
-        <p class="home-subtitle">Leitor de HQs e Mangas para .pdf, .cbz e .cbr</p>
-        <button id="open-comic-btn" class="primary-btn giant">
-          <span class="material-symbols-outlined">library_books</span>
-          Abrir Nova HQ
-        </button>
-        <p class="home-hint">Use tambem as setas do teclado para navegar durante a leitura.</p>
-      </div>
-    </section>
+    <section id="library-screen" class="screen active library-shell">
+      <div class="library-backdrop" aria-hidden="true"></div>
 
-    <section id="reader-screen" class="screen">
-      <header class="reader-header">
-        <div class="reader-title-wrap">
-          <p id="reader-series" class="reader-series">-</p>
-          <p id="reader-page-counter" class="reader-counter">Pagina 0 / 0</p>
+      <header class="floating-menu" aria-label="Menu da biblioteca">
+        <div class="brand-mark" aria-label="MHQViewer">
+          <span class="brand-symbol">M</span>
+          <span class="brand-name">MHQViewer</span>
         </div>
-        <div class="reader-header-actions">
-          <button id="open-other-btn" class="icon-btn" title="Abrir outra HQ">
-            <span class="material-symbols-outlined">folder_open</span>
+
+        <nav id="library-view-tabs" class="view-tabs" aria-label="Vistas da biblioteca" role="tablist">
+          <button class="view-tab" type="button" role="tab" data-library-view="recent" aria-selected="false">
+            <span class="material-symbols-outlined">history</span>
+            <span>Vistos recentes</span>
           </button>
-          <button id="back-home-btn" class="icon-btn" title="Voltar para inicio">
-            <span class="material-symbols-outlined">close</span>
+          <button class="view-tab" type="button" role="tab" data-library-view="favorites" aria-selected="false">
+            <span class="material-symbols-outlined">star</span>
+            <span>Favoritos</span>
+          </button>
+          <button class="view-tab is-active" type="button" role="tab" data-library-view="collection" aria-selected="true">
+            <span class="material-symbols-outlined">library_books</span>
+            <span>Cole&ccedil;&atilde;o</span>
+          </button>
+        </nav>
+
+        <div class="floating-actions">
+          <button id="add-directory-btn" class="icon-action" type="button" title="Adicionar pasta">
+            <span class="material-symbols-outlined">create_new_folder</span>
+          </button>
+          <button id="open-comic-btn" class="icon-action is-primary" type="button" title="Abrir HQ ou Mang&aacute;">
+            <span class="material-symbols-outlined">folder_open</span>
           </button>
         </div>
       </header>
 
-      <main class="reader-main">
-        <button id="prev-btn" class="nav-btn left" title="Pagina anterior">
-          <span class="material-symbols-outlined">chevron_left</span>
-        </button>
+      <main class="library-main custom-scrollbar">
+        <section class="library-intro">
+          <p class="intro-kicker">Biblioteca local</p>
+          <div class="intro-copy">
+            <h1 id="library-view-title">Cole&ccedil;&atilde;o</h1>
+            <p id="library-view-description">Sua biblioteca local, limpa e organizada por pastas monitoradas.</p>
+          </div>
+          <div id="directory-list" class="directory-list" aria-label="Pastas monitoradas"></div>
+        </section>
 
-        <div id="page-stage" class="page-stage">
-          <img id="page-image" alt="Pagina da HQ" />
-          <p id="loading-text" class="loading-text">Abra uma HQ para iniciar.</p>
+        <section class="library-content">
+          <div class="section-heading">
+            <div>
+              <h2 id="library-section-title">Todos os t&iacute;tulos</h2>
+              <p id="library-meta">0 t&iacute;tulos</p>
+            </div>
+          </div>
+
+          <div id="library-grid" class="library-grid"></div>
+          <div id="library-empty" class="library-empty"></div>
+        </section>
+      </main>
+    </section>
+
+    <section id="reader-screen" class="screen">
+      <main class="relative w-full h-screen flex justify-center bg-black overflow-hidden font-body text-on-surface">
+
+        <div id="page-stage" class="h-full w-full flex flex-col items-center overflow-y-auto custom-scrollbar manga-page-shadow outline-none relative hover:cursor-grab active:cursor-grabbing">
+          <div id="page-scroll-content" class="w-full flex flex-col items-center py-8 relative transition-transform" style="transform-origin: top center;">
+            <img id="page-image" style="display: none;" alt="P&aacute;gina da HQ" class="w-full object-contain shadow-2xl pointer-events-none" />
+            <div id="loading-container" class="flex flex-col items-center justify-center p-12 space-y-4 text-on-surface-variant h-96">
+              <span class="material-symbols-outlined animate-spin text-4xl" style="animation: spin 3s linear infinite;">progress_activity</span>
+              <span id="loading-text" class="text-xs font-semibold tracking-widest uppercase text-center mt-4">Carregando quadrinho...</span>
+            </div>
+          </div>
         </div>
 
-        <button id="next-btn" class="nav-btn right" title="Proxima pagina">
-          <span class="material-symbols-outlined">chevron_right</span>
-        </button>
+        <header class="fixed top-0 left-1/2 -translate-x-1/2 z-50 flex items-center gap-8 py-2 bg-[#1B1B1B]/70 backdrop-blur-md text-[#FFFFFF] font-inter text-xs font-semibold rounded-lg mt-4 px-6 outline-variant/15 shadow-2xl shadow-black/50">
+          <div class="flex items-center gap-6">
+            <p id="reader-series" class="text-sm font-bold tracking-wider text-on-surface truncate max-w-[200px]">-</p>
+            <div class="h-4 w-[1px] bg-outline-variant/30"></div>
+
+            <div class="flex items-center gap-4 bg-surface-container-high/40 px-3 py-1 rounded-md">
+              <button id="zoom-out-btn" class="text-[#C6C6C6] hover:text-white transition-colors" title="Diminuir zoom">
+                <span class="material-symbols-outlined text-base">remove</span>
+              </button>
+              <span id="zoom-value" class="min-w-[4ch] text-center font-mono text-[11px]">100%</span>
+              <button id="zoom-in-btn" class="text-[#C6C6C6] hover:text-white transition-colors" title="Aumentar zoom">
+                <span class="material-symbols-outlined text-base">add</span>
+              </button>
+            </div>
+
+            <button id="open-other-btn" class="flex items-center justify-center hover:bg-[#353535] rounded-full p-1 transition-all" title="Abrir outra HQ">
+              <span class="material-symbols-outlined text-lg">folder_open</span>
+            </button>
+            <button id="back-library-btn" class="flex items-center justify-center hover:bg-[#690005]/50 bg-transparent text-[#e2e2e2] hover:text-[#ffdad6] rounded-full p-1 transition-all" title="Fechar leitor">
+              <span class="material-symbols-outlined text-lg">close</span>
+            </button>
+          </div>
+        </header>
+
+        <div id="prev-btn" class="absolute inset-y-0 left-0 w-32 group flex items-center justify-center cursor-pointer pointer-events-auto z-40">
+          <div class="opacity-0 group-hover:opacity-100 transition-opacity duration-300 bg-black/40 p-4 rounded-full backdrop-blur-sm">
+            <span class="material-symbols-outlined text-white text-3xl">chevron_left</span>
+          </div>
+        </div>
+
+        <div id="next-btn" class="absolute inset-y-0 right-0 w-32 group flex items-center justify-center cursor-pointer pointer-events-auto z-40">
+          <div class="opacity-0 group-hover:opacity-100 transition-opacity duration-300 bg-black/40 p-4 rounded-full backdrop-blur-sm">
+            <span class="material-symbols-outlined text-white text-3xl">chevron_right</span>
+          </div>
+        </div>
+
+        <div class="fixed right-6 bottom-8 z-40 flex flex-col items-end gap-2 pointer-events-none">
+          <div id="reader-page-counter" class="bg-surface-container-low/80 backdrop-blur-md px-3 py-1 rounded text-[10px] font-bold tracking-widest text-on-surface-variant font-mono">
+            P. 000 / 000
+          </div>
+          <div class="w-1.5 h-32 bg-surface-container rounded-full overflow-hidden flex flex-col justify-end">
+            <div id="reader-progress-bar" class="w-full h-0 bg-primary transition-all duration-300"></div>
+          </div>
+        </div>
+
+        <div class="fixed bottom-8 left-1/2 -translate-x-1/2 z-40 pointer-events-none opacity-50">
+          <div class="bg-surface-container-low/60 backdrop-blur-xl border border-outline-variant/10 px-4 py-2 rounded-full flex items-center gap-3">
+            <div class="flex items-center gap-1">
+              <span class="px-1.5 py-0.5 bg-surface-container-highest text-[10px] rounded border border-outline-variant/30 text-white font-mono">&larr;</span>
+              <span class="px-1.5 py-0.5 bg-surface-container-highest text-[10px] rounded border border-outline-variant/30 text-white font-mono">&rarr;</span>
+            </div>
+            <span class="text-[11px] font-medium text-on-surface-variant uppercase tracking-widest">Setas para navegar</span>
+          </div>
+        </div>
       </main>
     </section>
   </div>
 
-  <script src="./renderer.js"></script>
+  <script type="module" src="./renderer.js"></script>
 </body>
 
 </html>

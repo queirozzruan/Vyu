@@ -1,7 +1,8 @@
 import { els, switchScreen } from '../utils/dom.js';
-import { state } from '../store/state.js';
+import { setLibraryView, state } from '../store/state.js';
 import { goToPreviousPage, goToNextPage, setZoom, pickAndOpenComic } from '../services/readerService.js';
 import { addDirectoryFlow } from '../services/libraryService.js';
+import { renderLibraryItems } from '../components/libraryRenderer.js';
 
 export function setupInputHandlers(onComicOpen) {
   window.addEventListener('keydown', (event) => {
@@ -41,9 +42,20 @@ export function setupInputHandlers(onComicOpen) {
   els.openComicBtn.addEventListener('click', pickAndOpenComic);
   els.addDirectoryBtn.addEventListener('click', () => addDirectoryFlow(onComicOpen));
   els.openOtherBtn.addEventListener('click', pickAndOpenComic);
-  els.backLibraryBtn.addEventListener('click', () => switchScreen('library'));
+  els.backLibraryBtn.addEventListener('click', () => {
+    renderLibraryItems(onComicOpen);
+    switchScreen('library');
+  });
   els.prevBtn.addEventListener('click', goToPreviousPage);
   els.nextBtn.addEventListener('click', goToNextPage);
   els.zoomInBtn.addEventListener('click', () => setZoom(state.zoom + 0.1));
   els.zoomOutBtn.addEventListener('click', () => setZoom(state.zoom - 0.1));
+
+  els.libraryViewTabs?.addEventListener('click', (event) => {
+    const tab = event.target.closest('[data-library-view]');
+    if (!tab) return;
+
+    setLibraryView(tab.dataset.libraryView);
+    renderLibraryItems(onComicOpen);
+  });
 }

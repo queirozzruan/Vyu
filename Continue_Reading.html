@@ -1,0 +1,276 @@
+<!DOCTYPE html>
+
+<html class="dark" lang="en">
+
+<head>
+  <meta charset="utf-8" />
+  <meta content="width=device-width, initial-scale=1.0" name="viewport" />
+  <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&amp;family=Inter:wght@400;500;600&amp;display=swap" rel="stylesheet" />
+  <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet" />
+  <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet" />
+  <script id="tailwind-config">
+    tailwind.config = {
+      darkMode: "class",
+      theme: {
+        extend: {
+          colors: {
+            "on-error-container": "#ffdad6",
+            "on-surface": "#e2e2e2",
+            "primary-fixed-dim": "#454747",
+            "on-surface-variant": "#c6c6c6",
+            "on-primary-container": "#000000",
+            "on-error": "#690005",
+            "outline": "#919191",
+            "on-primary": "#1a1c1c",
+            "surface": "#131313",
+            "on-secondary": "#1b1c1c",
+            "surface-bright": "#393939",
+            "surface-container-high": "#2a2a2a",
+            "inverse-on-surface": "#303030",
+            "on-background": "#e2e2e2",
+            "background": "#131313",
+            "tertiary-fixed": "#5f5e5e",
+            "primary-container": "#d4d4d4",
+            "secondary-fixed": "#c8c6c5",
+            "inverse-primary": "#5d5f5f",
+            "primary-fixed": "#5d5f5f",
+            "on-tertiary-container": "#000000",
+            "secondary": "#c8c6c5",
+            "on-tertiary-fixed-variant": "#e5e2e1",
+            "tertiary": "#e5e2e1",
+            "surface-tint": "#c6c6c7",
+            "surface-container-low": "#1b1b1b",
+            "tertiary-container": "#929090",
+            "error": "#ffb4ab",
+            "tertiary-fixed-dim": "#474646",
+            "primary": "#ffffff",
+            "on-tertiary-fixed": "#ffffff",
+            "on-tertiary": "#1c1b1b",
+            "surface-container": "#1f1f1f",
+            "error-container": "#93000a",
+            "on-secondary-fixed-variant": "#3b3b3b",
+            "surface-variant": "#353535",
+            "on-primary-fixed-variant": "#e2e2e2",
+            "surface-container-highest": "#353535",
+            "on-secondary-fixed": "#1b1c1c",
+            "on-secondary-container": "#e4e2e1",
+            "outline-variant": "#474747",
+            "inverse-surface": "#e2e2e2",
+            "on-primary-fixed": "#ffffff",
+            "secondary-fixed-dim": "#acabaa",
+            "surface-dim": "#131313",
+            "secondary-container": "#474746",
+            "surface-container-lowest": "#0e0e0e"
+          },
+          fontFamily: {
+            "headline": ["Manrope"],
+            "body": ["Inter"],
+            "label": ["Inter"]
+          },
+          borderRadius: { "DEFAULT": "0.125rem", "lg": "0.25rem", "xl": "0.5rem", "full": "0.75rem" },
+        },
+      },
+    }
+  </script>
+  <style>
+    body {
+      background-color: #131313;
+    }
+
+    .material-symbols-outlined {
+      font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+    }
+  </style>
+</head>
+
+<body class="font-body text-on-surface bg-surface antialiased">
+  <!-- SideNavBar Shell -->
+  <nav class="fixed left-0 top-0 h-full flex flex-col p-6 z-40 bg-[#131313] dark:bg-[#131313] h-screen w-64 border-r-0 font-manrope antialiased tracking-tight">
+    <div class="mb-12">
+      <h1 class="text-xl font-bold text-white tracking-widest uppercase">MHQViewer</h1>
+      <p class="text-xs text-on-surface-variant mt-1 opacity-60">The Cinematic Canvas</p>
+    </div>
+    <div class="flex flex-col gap-2 flex-grow">
+      <!-- Library -->
+      <a class="flex items-center gap-3 px-4 py-3 text-[#C6C6C6] hover:bg-[#353535] transition-all duration-200 rounded-md" href="#">
+        <span class="material-symbols-outlined" data-icon="library_books">library_books</span>
+        <span>Library</span>
+      </a>
+      <!-- Continue Reading - ACTIVE -->
+      <a class="flex items-center gap-3 px-4 py-3 text-white bg-[#2A2A2A] rounded-md transition-all scale-102" href="#">
+        <span class="material-symbols-outlined" data-icon="play_circle" style="font-variation-settings: 'FILL' 1;">play_circle</span>
+        <span class="font-semibold">Continue Reading</span>
+      </a>
+      <!-- Search -->
+      <a class="flex items-center gap-3 px-4 py-3 text-[#C6C6C6] hover:bg-[#353535] transition-all duration-200 rounded-md" href="#">
+        <span class="material-symbols-outlined" data-icon="search">search</span>
+        <span>Search</span>
+      </a>
+    </div>
+    <button class="mt-auto flex items-center justify-center gap-2 px-4 py-3 bg-surface-container-highest text-white rounded-md hover:bg-outline-variant transition-colors text-sm">
+      <span class="material-symbols-outlined text-sm" data-icon="add">add</span>
+      Add Directory
+    </button>
+  </nav>
+  <!-- Main Content Area -->
+  <main class="ml-64 min-h-screen">
+    <!-- TopAppBar -->
+    <header class="flex justify-between items-center px-12 py-8 w-full bg-[#131313]/90 backdrop-blur-xl sticky top-0 z-30">
+      <div>
+        <h2 class="font-headline text-3xl font-extrabold tracking-tight text-white">Continue Reading</h2>
+        <p class="text-on-surface-variant text-sm mt-1 uppercase tracking-widest font-medium">Recently Accessed Works</p>
+      </div>
+      <div class="flex items-center gap-4">
+        <button class="hover:bg-[#353535] rounded-full p-2 transition-all text-[#C6C6C6] hover:text-white">
+          <span class="material-symbols-outlined" data-icon="refresh">refresh</span>
+        </button>
+        <button class="hover:bg-[#353535] rounded-full p-2 transition-all text-[#C6C6C6] hover:text-white">
+          <span class="material-symbols-outlined" data-icon="settings">settings</span>
+        </button>
+      </div>
+    </header>
+    <!-- Centered Focused List -->
+    <section class="px-12 pb-24 max-w-6xl">
+      <div class="flex flex-col gap-6">
+        <!-- Item 1: High Priority Recent -->
+        <div class="group flex bg-surface-container-low hover:bg-surface-container-highest transition-all duration-300 p-6 rounded-lg items-center gap-8 relative overflow-hidden">
+          <div class="relative w-48 h-64 flex-shrink-0 overflow-hidden rounded-md shadow-2xl">
+            <img alt="Cover Art" class="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105" data-alt="Dark dramatic manga cover illustration with red accents" src="https://lh3.googleusercontent.com/aida-public/AB6AXuD8xU4WxeKsotSe91IiJhbPhltfhZfeQbAZ8u90ei0V8YwyxDYOhvdsVlN26r2T5P6fnJgStT2sE95WNQj0Kfq87vjCRT3SBc0KMekrHR9mpLrMLgZ9IhQ1u8Lv295pjde5F8ZNE_BMF9L6SgMt_vwC6GtJTu-naFsF-wSOgwWaH0q4R2Oh--37vmEm7kkgqArBzU179EouMxXSkCgfXILyCMwycF2Fij4dol9jdEKuyg1rEBGRfkvV3LDTFFTOQikHPHNN4c63ACU" />
+            <div class="absolute top-0 left-0 w-full h-full bg-gradient-to-t from-black/60 to-transparent"></div>
+          </div>
+          <div class="flex-grow">
+            <div class="flex items-start justify-between mb-2">
+              <span class="text-xs font-semibold tracking-widest text-primary uppercase bg-surface-container-high px-2 py-1 rounded">Resume Reading</span>
+              <span class="text-xs text-on-surface-variant font-medium">Read 2 hours ago</span>
+            </div>
+            <h3 class="font-headline text-4xl font-bold text-white mb-2 leading-tight">Shadow Realm Chronicles</h3>
+            <div class="flex items-center gap-6 mb-8 text-on-surface-variant">
+              <div class="flex items-center gap-2">
+                <span class="material-symbols-outlined text-sm" data-icon="menu_book">menu_book</span>
+                <span class="text-sm font-medium">Chapter 142: The Final Veil</span>
+              </div>
+              <div class="flex items-center gap-2">
+                <span class="material-symbols-outlined text-sm" data-icon="description">description</span>
+                <span class="text-sm font-medium">Page 24 of 48</span>
+              </div>
+            </div>
+            <div class="flex items-center gap-4">
+              <button class="bg-primary text-on-primary px-8 py-3 rounded-md font-bold text-sm flex items-center gap-2 transition-transform hover:scale-105 active:scale-95">
+                <span class="material-symbols-outlined" data-icon="play_arrow" style="font-variation-settings: 'FILL' 1;">play_arrow</span>
+                RESUME READING
+              </button>
+              <button class="px-6 py-3 border border-outline-variant/20 hover:bg-surface-container-high transition-colors rounded-md text-sm font-semibold text-on-surface-variant">
+                Chapter List
+              </button>
+            </div>
+          </div>
+          <!-- Subtle progress indicator at the very bottom -->
+          <div class="absolute bottom-0 left-0 h-1 bg-primary/20 w-full">
+            <div class="h-full bg-primary" style="width: 50%;"></div>
+          </div>
+        </div>
+        <!-- Item 2 -->
+        <div class="group flex bg-surface-container-low hover:bg-surface-container-highest transition-all duration-300 p-6 rounded-lg items-center gap-8 relative overflow-hidden">
+          <div class="relative w-48 h-64 flex-shrink-0 overflow-hidden rounded-md shadow-2xl">
+            <img alt="Cover Art" class="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105" data-alt="Classical book cover illustration with intricate golden patterns" src="https://lh3.googleusercontent.com/aida-public/AB6AXuAkb_uAYRXl_qtLF8m4lr8OKBYOQD5DFuTgrZ-YQhqq-alye5EZ6C92HUU6JWPAFA3MkdwRPA__lHKUlP994ySJMSaX26AXvAuixJT5DYVfAE5PwSVhSvcx83kWH8Psj8yr1vPDsWBRwJArjoA_ZtOFY0akQQPlB38KGujtSe0K1qC18uPREsF239snq5CrYs4H_q0L-TiCpgscn51CRy-XUrWh7r8Y8FlLit6vEt9BpAQ8stRCDnZQE4AEx-2LIKP4JzBCJg2mBkc" />
+            <div class="absolute top-0 left-0 w-full h-full bg-gradient-to-t from-black/60 to-transparent"></div>
+          </div>
+          <div class="flex-grow">
+            <div class="flex items-start justify-between mb-2">
+              <div class="invisible"><span class="text-xs uppercase bg-surface-container-high px-2 py-1 rounded">Placeholder</span></div>
+              <span class="text-xs text-on-surface-variant font-medium">Read 14 hours ago</span>
+            </div>
+            <h3 class="font-headline text-4xl font-bold text-white mb-2 leading-tight">Neon District Protocol</h3>
+            <div class="flex items-center gap-6 mb-8 text-on-surface-variant">
+              <div class="flex items-center gap-2">
+                <span class="material-symbols-outlined text-sm" data-icon="menu_book">menu_book</span>
+                <span class="text-sm font-medium">Chapter 28: Binary Sunset</span>
+              </div>
+              <div class="flex items-center gap-2">
+                <span class="material-symbols-outlined text-sm" data-icon="description">description</span>
+                <span class="text-sm font-medium">Page 12 of 32</span>
+              </div>
+            </div>
+            <div class="flex items-center gap-4">
+              <button class="bg-primary text-on-primary px-8 py-3 rounded-md font-bold text-sm flex items-center gap-2 transition-transform hover:scale-105 active:scale-95">
+                <span class="material-symbols-outlined" data-icon="play_arrow" style="font-variation-settings: 'FILL' 1;">play_arrow</span>
+                RESUME READING
+              </button>
+              <button class="px-6 py-3 border border-outline-variant/20 hover:bg-surface-container-high transition-colors rounded-md text-sm font-semibold text-on-surface-variant">
+                Chapter List
+              </button>
+            </div>
+          </div>
+          <div class="absolute bottom-0 left-0 h-1 bg-primary/20 w-full">
+            <div class="h-full bg-primary" style="width: 37%;"></div>
+          </div>
+        </div>
+        <!-- Item 3 -->
+        <div class="group flex bg-surface-container-low hover:bg-surface-container-highest transition-all duration-300 p-6 rounded-lg items-center gap-8 relative overflow-hidden">
+          <div class="relative w-48 h-64 flex-shrink-0 overflow-hidden rounded-md shadow-2xl">
+            <img alt="Cover Art" class="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105" data-alt="Abstract watercolor manga landscape illustration in blue and white" src="https://lh3.googleusercontent.com/aida-public/AB6AXuCPVyoXvJ_5x4s-tIylBl-L17Ecv7tf-J3Urkm8k3AqURCebiivGsoJDXUn-HRIBlR0oauaI16elbnkLOYr_9F0KEiUCO6tI1wd_q-KtwWA5scItcsY03LtV93zqT-A24tfox2mR0pB8schaGMJKF4nBSlHWqHiE8MntmeibK5UW0sggMtsrBt_mcfWuFMqpB6YlgzVI8F5OH1cmpTLTzd2A8JsMZoyJyBHVEfgtMtJVQjXqFEje-aBe9-auyw2MQU3GCZkMUNRfqo" />
+            <div class="absolute top-0 left-0 w-full h-full bg-gradient-to-t from-black/60 to-transparent"></div>
+          </div>
+          <div class="flex-grow">
+            <div class="flex items-start justify-between mb-2">
+              <div class="invisible"><span class="text-xs uppercase bg-surface-container-high px-2 py-1 rounded">Placeholder</span></div>
+              <span class="text-xs text-on-surface-variant font-medium">Read Yesterday</span>
+            </div>
+            <h3 class="font-headline text-4xl font-bold text-white mb-2 leading-tight">The Silent Gardener</h3>
+            <div class="flex items-center gap-6 mb-8 text-on-surface-variant">
+              <div class="flex items-center gap-2">
+                <span class="material-symbols-outlined text-sm" data-icon="menu_book">menu_book</span>
+                <span class="text-sm font-medium">Volume 04: Hibernation</span>
+              </div>
+              <div class="flex items-center gap-2">
+                <span class="material-symbols-outlined text-sm" data-icon="description">description</span>
+                <span class="text-sm font-medium">Page 184 of 210</span>
+              </div>
+            </div>
+            <div class="flex items-center gap-4">
+              <button class="bg-primary text-on-primary px-8 py-3 rounded-md font-bold text-sm flex items-center gap-2 transition-transform hover:scale-105 active:scale-95">
+                <span class="material-symbols-outlined" data-icon="play_arrow" style="font-variation-settings: 'FILL' 1;">play_arrow</span>
+                RESUME READING
+              </button>
+              <button class="px-6 py-3 border border-outline-variant/20 hover:bg-surface-container-high transition-colors rounded-md text-sm font-semibold text-on-surface-variant">
+                Chapter List
+              </button>
+            </div>
+          </div>
+          <div class="absolute bottom-0 left-0 h-1 bg-primary/20 w-full">
+            <div class="h-full bg-primary" style="width: 88%;"></div>
+          </div>
+        </div>
+      </div>
+    </section>
+    <!-- Fixed Bottom Control/Status Bar (Contextual Info) -->
+    <div class="fixed bottom-0 left-64 right-0 px-12 py-4 bg-surface-container-low/80 backdrop-blur-md border-t border-white/5 flex items-center justify-between text-xs text-on-surface-variant tracking-wider uppercase">
+      <div class="flex items-center gap-4">
+        <span>Last Synced: 5m ago</span>
+        <span class="opacity-20">|</span>
+        <span>Storage: 42.4 GB Free</span>
+      </div>
+      <div class="flex items-center gap-6">
+        <span class="flex items-center gap-1"><span class="w-2 h-2 rounded-full bg-green-500"></span> Online</span>
+        <button class="hover:text-white transition-colors">Help &amp; Support</button>
+      </div>
+    </div>
+  </main>
+  <!-- Floating Reader HUD Controls (Appears on hover or active intent) -->
+  <div class="fixed bottom-12 left-1/2 -translate-x-1/2 z-50 flex items-center gap-8 py-2 bg-[#1B1B1B]/70 backdrop-blur-md rounded-full px-8 shadow-2xl shadow-black/50 opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none">
+    <span class="font-inter text-xs font-semibold text-on-surface-variant">Reader Controls</span>
+    <div class="w-[1px] h-4 bg-outline-variant/30"></div>
+    <button class="text-[#C6C6C6] hover:text-white transition-colors">
+      <span class="material-symbols-outlined" data-icon="swap_calls">swap_calls</span>
+    </button>
+    <button class="text-[#C6C6C6] hover:text-white transition-colors">
+      <span class="material-symbols-outlined" data-icon="zoom_in">zoom_in</span>
+    </button>
+    <button class="text-[#C6C6C6] hover:text-white transition-colors">
+      <span class="material-symbols-outlined" data-icon="close">close</span>
+    </button>
+  </div>
+</body>
+
+</html>

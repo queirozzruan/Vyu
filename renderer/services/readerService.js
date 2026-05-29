@@ -1,0 +1,168 @@
+import { rememberRecentItem, state } from '../store/state.js';
+import { els, setLoading, hideLoading, switchScreen } from '../utils/dom.js';
+import { updateHeader, updateNavButtons, updateZoomLabel, resetView, updateTransform } from '../components/readerRenderer.js';
+
+export function clamp(value, min, max) {
+  return Math.min(Math.max(value, min), max);
+}
+
+export function base64ToUint8Array(base64) {
+  const binaryString = window.atob(base64);
+  const length = binaryString.length;
+  const bytes = new Uint8Array(length);
+  for (let index = 0; index < length; index += 1) {
+    bytes[index] = binaryString.charCodeAt(index);
+  }
+  return bytes;
+}
+
+export async function ensurePdfJs() {
+  if (state.pdfjsLib) return state.pdfjsLib;
+  const paths = await window.mhq.getPdfJsPaths();
+  const pdfjsLib = await import(paths.moduleUrl);
+  pdfjsLib.GlobalWorkerOptions.workerSrc = paths.workerUrl;
+  state.pdfjsLib = pdfjsLib;
+  return pdfjsLib;
+}
+
+export async function waitForImageLoad() {
+  if (els.pageImage.complete && els.pageImage.naturalWidth > 0) return;
+
+  await new Promise((resolve, reject) => {
+    const onLoad = () => { cleanup(); resolve(); };
+    const onError = () => { cleanup(); reject(new Error('Falha ao carregar imagem da pagina.')); };
+    const cleanup = () => {
+      els.pageImage.removeEventListener('load', onLoad);
+      els.pageImage.removeEventListener('error', onError);
+    };
+    els.pageImage.addEventListener('load', onLoad);
+    els.pageImage.addEventListener('error', onError);
+  });
+}
+
+export async function renderPdfPage(pageNumber, requestVersion) {
+  const page = await state.pdfDocument.getPage(pageNumber);
+  const viewportAt1x = page.getViewport({ scale: 1 });
+  const viewportWidth = Math.max(100, els.pageStage.clientWidth - 40);
+  const viewportHeight = Math.max(100, els.pageStage.clientHeight - 40);
+  const fitScale = Math.min(viewportWidth / viewportAt1x.width, viewportHeight / viewportAt1x.height);
+
+  const viewport = page.getViewport({ scale: fitScale * 1.5 });
+  const canvas = document.createElement('canvas');
+  const context = canvas.getContext('2d', { alpha: false });
+  canvas.width = Math.floor(viewport.width);
+  canvas.height = Math.floor(viewport.height);
+
+  await page.render({ canvasContext: context, viewport }).promise;
+
+  if (requestVersion !== state.pageVersion) return;
+
+  els.pageImage.src = canvas.toDataURL('image/png');
+  els.pageImage.style.width = '';
+  els.pageImage.style.height = '';
+  hideLoading();
+}
+
+export async function renderCurrentPage() {
+  if (state.totalPages === 0) {
+    setLoading('Nenhuma pagina disponivel.');
+    updateHeader();
+    updateNavButtons();
+    return;
+  }
+
+  updateHeader();
+  updateNavButtons();
+
+  if (state.rendering) return;
+
+  state.rendering = true;
+  state.pageVersion += 1;
+  const requestVersion = state.pageVersion;
+
+  try {
+    if (state.kind === 'images') {
+      const page = state.imagePages[state.currentPageIndex];
+      if (!page) throw new Error('Pagina de imagem nao encontrada.');
+
+      setLoading('Carregando pagina...');
+      els.pageImage.src = page.src;
+      await waitForImageLoad();
+
+      state.currentImageNaturalWidth = els.pageImage.naturalWidth;
+      state.currentImageNaturalHeight = els.pageImage.naturalHeight;
+      hideLoading();
+    } else if (state.kind === 'pdf') {
+      setLoading('Renderizando PDF...');
+      await renderPdfPage(state.currentPageIndex + 1, requestVersion);
+    }
+    resetView();
+  } catch (error) {
+    setLoading(`Erro ao renderizar pagina: ${error.message}`);
+  } finally {
+    state.rendering = false;
+  }
+}
+
+export async function loadComicFromPath(filePath) {
+  setLoading('Carregando arquivo...');
+  switchScreen('reader');
+
+  try {
+    const result = await window.mhq.loadComic(filePath);
+    state.title = result.title;
+    rememberRecentItem({ filePath, title: result.title });
+    state.currentPageIndex = 0;
+    state.zoom = 1;
+    state.imagePages = [];
+    state.pdfDocument = null;
+
+    if (result.kind === 'images') {
+      state.kind = 'images';
+      state.imagePages = result.pages;
+      state.totalPages = result.pages.length;
+    } else if (result.kind === 'pdf') {
+      state.kind = 'pdf';
+      const pdfjsLib = await ensurePdfJs();
+      const pdfData = base64ToUint8Array(result.pdfBase64);
+      state.pdfDocument = await pdfjsLib.getDocument({ data: pdfData }).promise;
+      state.totalPages = state.pdfDocument.numPages;
+    } else {
+      throw new Error('Tipo de conteudo nao suportado pelo renderer.');
+    }
+
+    updateZoomLabel();
+    await renderCurrentPage();
+  } catch (error) {
+    setLoading(`Falha ao abrir HQ: ${error.message}`);
+    updateHeader();
+    updateNavButtons();
+  }
+}
+
+export async function pickAndOpenComic() {
+  const filePath = await window.mhq.openComicFile();
+  if (filePath) await loadComicFromPath(filePath);
+}
+
+export function goToNextPage() {
+  if (state.currentPageIndex < state.totalPages - 1) {
+    state.currentPageIndex += 1;
+    renderCurrentPage();
+  }
+}
+
+export function goToPreviousPage() {
+  if (state.currentPageIndex > 0) {
+    state.currentPageIndex -= 1;
+    renderCurrentPage();
+  }
+}
+
+export function setZoom(newZoom) {
+  const zoom = clamp(newZoom, 0.4, 4);
+  if (Math.abs(zoom - state.zoom) < 0.001) return;
+  state.zoom = zoom;
+  updateZoomLabel();
+  updateTransform();
+}

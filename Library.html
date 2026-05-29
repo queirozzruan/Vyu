@@ -1,0 +1,295 @@
+<!DOCTYPE html>
+
+<html class="dark" lang="en">
+
+<head>
+    <meta charset="utf-8" />
+    <meta content="width=device-width, initial-scale=1.0" name="viewport" />
+    <title>MHQViewer | Library</title>
+    <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@200;400;600;700;800&amp;family=Inter:wght@300;400;500;600&amp;display=swap" rel="stylesheet" />
+    <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet" />
+    <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet" />
+    <script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        "on-error-container": "#ffdad6",
+                        "on-surface": "#e2e2e2",
+                        "primary-fixed-dim": "#454747",
+                        "on-surface-variant": "#c6c6c6",
+                        "on-primary-container": "#000000",
+                        "on-error": "#690005",
+                        "outline": "#919191",
+                        "on-primary": "#1a1c1c",
+                        "surface": "#131313",
+                        "on-secondary": "#1b1c1c",
+                        "surface-bright": "#393939",
+                        "surface-container-high": "#2a2a2a",
+                        "inverse-on-surface": "#303030",
+                        "on-background": "#e2e2e2",
+                        "background": "#131313",
+                        "tertiary-fixed": "#5f5e5e",
+                        "primary-container": "#d4d4d4",
+                        "secondary-fixed": "#c8c6c5",
+                        "inverse-primary": "#5d5f5f",
+                        "primary-fixed": "#5d5f5f",
+                        "on-tertiary-container": "#000000",
+                        "secondary": "#c8c6c5",
+                        "on-tertiary-fixed-variant": "#e5e2e1",
+                        "tertiary": "#e5e2e1",
+                        "surface-tint": "#c6c6c7",
+                        "surface-container-low": "#1b1b1b",
+                        "tertiary-container": "#929090",
+                        "error": "#ffb4ab",
+                        "tertiary-fixed-dim": "#474646",
+                        "primary": "#ffffff",
+                        "on-tertiary-fixed": "#ffffff",
+                        "on-tertiary": "#1c1b1b",
+                        "surface-container": "#1f1f1f",
+                        "error-container": "#93000a",
+                        "on-secondary-fixed-variant": "#3b3b3b",
+                        "surface-variant": "#353535",
+                        "on-primary-fixed-variant": "#e2e2e2",
+                        "surface-container-highest": "#353535",
+                        "on-secondary-fixed": "#1b1c1c",
+                        "on-secondary-container": "#e4e2e1",
+                        "outline-variant": "#474747",
+                        "inverse-surface": "#e2e2e2",
+                        "on-primary-fixed": "#ffffff",
+                        "secondary-fixed-dim": "#acabaa",
+                        "surface-dim": "#131313",
+                        "secondary-container": "#474746",
+                        "surface-container-lowest": "#0e0e0e"
+                    },
+                    fontFamily: {
+                        "headline": ["Manrope"],
+                        "body": ["Inter"],
+                        "label": ["Inter"]
+                    },
+                    borderRadius: { "DEFAULT": "0.125rem", "lg": "0.25rem", "xl": "0.5rem", "full": "0.75rem" },
+                },
+            },
+        }
+    </script>
+    <style>
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+        }
+
+        body {
+            background-color: #131313;
+            color: #e2e2e2;
+        }
+
+        .hide-scrollbar::-webkit-scrollbar {
+            display: none;
+        }
+
+        .hide-scrollbar {
+            -ms-overflow-style: none;
+            scrollbar-width: none;
+        }
+    </style>
+</head>
+
+<body class="font-body selection:bg-primary selection:text-on-primary">
+    <!-- SideNavBar -->
+    <nav class="fixed left-0 top-0 h-full flex flex-col p-6 z-40 h-screen w-64 border-r-0 bg-[#131313] dark:bg-[#131313] font-manrope antialiased tracking-tight">
+        <div class="mb-12">
+            <h1 class="text-xl font-bold text-white tracking-widest uppercase mb-1">MHQViewer</h1>
+            <p class="text-[10px] text-on-surface-variant uppercase tracking-[0.2em] font-medium opacity-60">The Cinematic Canvas</p>
+        </div>
+        <div class="flex flex-col gap-2 flex-grow">
+            <!-- Library - Active -->
+            <a class="flex items-center gap-3 px-4 py-3 text-white bg-[#2A2A2A] rounded-md transition-all scale-102 transition-transform duration-200 ease-out" href="#">
+                <span class="material-symbols-outlined" data-icon="library_books">library_books</span>
+                <span class="font-semibold">Library</span>
+            </a>
+            <!-- Continue Reading -->
+            <a class="flex items-center gap-3 px-4 py-3 text-[#C6C6C6] hover:text-white transition-colors hover:bg-[#353535] transition-all duration-200" href="#">
+                <span class="material-symbols-outlined" data-icon="play_circle">play_circle</span>
+                <span>Continue Reading</span>
+            </a>
+            <!-- Search -->
+            <a class="flex items-center gap-3 px-4 py-3 text-[#C6C6C6] hover:text-white transition-colors hover:bg-[#353535] transition-all duration-200" href="#">
+                <span class="material-symbols-outlined" data-icon="search">search</span>
+                <span>Search</span>
+            </a>
+        </div>
+        <div class="mt-auto">
+            <button class="w-full flex items-center justify-center gap-2 bg-primary text-on-primary py-3 rounded-md font-semibold text-sm hover:opacity-90 transition-opacity">
+                <span class="material-symbols-outlined text-sm" data-icon="add">add</span>
+                Add Directory
+            </button>
+        </div>
+    </nav>
+    <!-- Main Content Shell -->
+    <main class="ml-64 min-h-screen flex flex-col">
+        <!-- TopAppBar -->
+        <header class="flex justify-between items-center px-8 py-4 w-full bg-[#131313]/90 backdrop-blur-xl sticky top-0 z-30 font-manrope text-sm font-medium uppercase tracking-widest text-[#FFFFFF]">
+            <div class="flex items-center gap-4">
+                <span class="text-on-surface-variant font-bold">Library</span>
+                <span class="w-1 h-1 bg-outline-variant rounded-full"></span>
+                <span class="text-[10px] opacity-40">148 Titles</span>
+            </div>
+            <div class="flex items-center gap-2">
+                <button class="hover:bg-[#353535] rounded-full p-2 transition-all group">
+                    <span class="material-symbols-outlined text-xl" data-icon="refresh">refresh</span>
+                </button>
+                <button class="hover:bg-[#353535] rounded-full p-2 transition-all group">
+                    <span class="material-symbols-outlined text-xl" data-icon="settings">settings</span>
+                </button>
+            </div>
+        </header>
+        <!-- Content Canvas -->
+        <section class="p-8 pb-20">
+            <!-- Hero Spotlight (Asymmetric Layout) -->
+            <div class="mb-16 grid grid-cols-12 gap-8 items-end">
+                <div class="col-span-12 lg:col-span-7">
+                    <h2 class="font-headline text-6xl font-extrabold tracking-tighter text-white mb-4">Current Read</h2>
+                    <div class="relative group aspect-[21/9] overflow-hidden rounded-xl bg-surface-container-low border border-outline-variant/10">
+                        <img alt="Featured Series Art" class="w-full h-full object-cover opacity-60 group-hover:scale-105 transition-transform duration-700" data-alt="Cinematic abstract dark background with manga aesthetic" src="https://lh3.googleusercontent.com/aida-public/AB6AXuCARpG06j6H3re3dlaXZ4XqMdx2Sk9Vsm4CNMWkAB74HdKHjqFIbzg7--SWsIbu09E6KubsoMJD7prHtFLG8WzIj4-z8rOW7EUo2Th_IlVGWSpz-7YuiMxdkBl3kmzDdTOVU_ElpkfNvzNGyJeVjnxAvycRMGan75U9h73H7EIcSREE9JeCXEAd9lAvzYgauUkadukHDx7rk3EgLlcn2XhqAx7hZMK-qYEbMsrSToH5yIhWB2OYh3nyvmFysTdTOnLWMHShYArZsMc" />
+                        <div class="absolute inset-0 bg-gradient-to-t from-background via-transparent to-transparent"></div>
+                        <div class="absolute bottom-8 left-8">
+                            <h3 class="text-3xl font-bold text-white mb-2">Berserk</h3>
+                            <p class="text-on-surface-variant text-sm mb-6 max-w-md">Chapter 364 — Tears of Morning Dew. 92% complete.</p>
+                            <button class="px-6 py-2 bg-primary text-on-primary font-bold rounded-md flex items-center gap-2">
+                                <span class="material-symbols-outlined text-base" data-icon="play_arrow" style="font-variation-settings: 'FILL' 1;">play_arrow</span>
+                                Resume Reading
+                            </button>
+                        </div>
+                    </div>
+                </div>
+                <div class="hidden lg:block lg:col-span-5 pb-2">
+                    <div class="bg-surface-container-low p-6 rounded-xl border border-outline-variant/5">
+                        <p class="text-[10px] uppercase tracking-widest text-on-surface-variant mb-4 font-bold">Quick Stats</p>
+                        <div class="space-y-4">
+                            <div class="flex justify-between items-center">
+                                <span class="text-sm opacity-60">Total Chapters Read</span>
+                                <span class="text-sm font-mono font-bold">2,481</span>
+                            </div>
+                            <div class="flex justify-between items-center">
+                                <span class="text-sm opacity-60">Reading Time</span>
+                                <span class="text-sm font-mono font-bold">142h 12m</span>
+                            </div>
+                            <div class="w-full bg-surface-container-highest h-1 mt-4">
+                                <div class="bg-primary h-full w-2/3"></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <!-- Library Grid -->
+            <div class="flex items-center justify-between mb-8">
+                <h3 class="font-headline text-2xl font-bold tracking-tight">Recent Additions</h3>
+                <div class="flex gap-4">
+                    <span class="text-xs uppercase tracking-widest font-bold text-primary border-b-2 border-primary pb-1 cursor-pointer">All</span>
+                    <span class="text-xs uppercase tracking-widest font-bold text-on-surface-variant opacity-40 hover:opacity-100 cursor-pointer pb-1">Manga</span>
+                    <span class="text-xs uppercase tracking-widest font-bold text-on-surface-variant opacity-40 hover:opacity-100 cursor-pointer pb-1">Comics</span>
+                </div>
+            </div>
+            <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-x-6 gap-y-10">
+                <!-- Card 1 -->
+                <div class="group cursor-pointer">
+                    <div class="aspect-[2/3] w-full bg-surface-container-high rounded-md overflow-hidden relative mb-4 transition-transform duration-300 group-hover:scale-[1.02] shadow-2xl shadow-black/50">
+                        <img alt="One Piece Cover" class="w-full h-full object-cover" data-alt="One Piece manga volume cover artwork" src="https://lh3.googleusercontent.com/aida-public/AB6AXuBMuLFWdqYd3qIhX4ioqYmy9OS9H0anVJgManBLWtY5GGiWJozWhce6We-QbkT6lyN1N8aO5F0CpW2WdG2REwB6r9PEbA083xZtVjit2A8vyhOyIVGX-g8lxrrbAgoFsrsJ8p3kfCTcY08SDvb3BQqvjAJwB3JxDEuYR7MO51hr0KkJ4fF6R99rkjGE9Abcz4PwL58m4EDYYaPg0ofHsfEEB2VVUA7bvvkPM3fDmPibYnuSdQgnBNnf9eYj9WR2RA1NEu2r0pQqEzE" />
+                        <div class="absolute bottom-0 left-0 right-0 h-1 bg-surface-container-highest">
+                            <div class="h-full bg-primary w-[80%]"></div>
+                        </div>
+                    </div>
+                    <h4 class="font-bold text-sm text-white mb-1 group-hover:text-primary transition-colors">One Piece</h4>
+                    <p class="text-[11px] text-on-surface-variant">Chapter 1051 • 80%</p>
+                </div>
+                <!-- Card 2 -->
+                <div class="group cursor-pointer">
+                    <div class="aspect-[2/3] w-full bg-surface-container-high rounded-md overflow-hidden relative mb-4 transition-transform duration-300 group-hover:scale-[1.02] shadow-2xl shadow-black/50">
+                        <img alt="Spider-Man Cover" class="w-full h-full object-cover" data-alt="Spider-Man comic book cover artwork" src="https://lh3.googleusercontent.com/aida-public/AB6AXuD62UWoaumLTlEJByCv3nLC0RAomBumDUH6aPOCRWnOaFa1N7XH1LxSWbgslpNqmAr2XPiek12gnegRZA7A8bb-Ffqn7_awlvzxCvpwNIXFc8s_BKnfG9d7YCGhM9_UzieSjekwjLyOn-kn6r5xxv12aiEGynNEO5rTaqdXbWucuEM5srm-mY9acNRAjCRBawtteFMFIRb8FwUG7djuXLC9dhc-VrWeQhp4o4zlj9bG11GnD-hIgIFqijixACD5SgbjQRz8EErky8M" />
+                        <div class="absolute bottom-0 left-0 right-0 h-1 bg-surface-container-highest">
+                            <div class="h-full bg-primary w-[35%]"></div>
+                        </div>
+                    </div>
+                    <h4 class="font-bold text-sm text-white mb-1 group-hover:text-primary transition-colors">Spider-Man</h4>
+                    <p class="text-[11px] text-on-surface-variant">Issue #24 • 35%</p>
+                </div>
+                <!-- Card 3 -->
+                <div class="group cursor-pointer">
+                    <div class="aspect-[2/3] w-full bg-surface-container-high rounded-md overflow-hidden relative mb-4 transition-transform duration-300 group-hover:scale-[1.02] shadow-2xl shadow-black/50">
+                        <img alt="Jujutsu Kaisen Cover" class="w-full h-full object-cover" data-alt="Japanese manga aesthetic cover artwork" src="https://lh3.googleusercontent.com/aida-public/AB6AXuDZVM_W0D7i4KCShyPtxsa5o3ra-IAFWFsxF99Gx9wSJAOyefGW_uiIeETpPBzk5_inMdw3JF-Y42GWtDVk2h8obc19mnd5W5dYSiVd0nyEia8OOKaHJz0Jfd-cgnWMQQ-uRNMbjhM4QtUG7Jn6mD99715_E4ixDfjgPd6i7H0ko4CDraljQRKwUoVgZ-aaRegLDgL3qDlFpFBbOqGAaxoilUv_gpi-JSh0jC438HFxdFkmTbNa-A3t9uzl1jk9WRp504Dcfk3pY9Y" />
+                        <div class="absolute bottom-0 left-0 right-0 h-1 bg-surface-container-highest">
+                            <div class="h-full bg-primary w-[100%]"></div>
+                        </div>
+                        <div class="absolute top-2 right-2 bg-primary text-on-primary text-[9px] font-black px-1.5 py-0.5 rounded-sm uppercase tracking-tighter">Read</div>
+                    </div>
+                    <h4 class="font-bold text-sm text-white mb-1 group-hover:text-primary transition-colors">Jujutsu Kaisen</h4>
+                    <p class="text-[11px] text-on-surface-variant">Chapter 212 • Completed</p>
+                </div>
+                <!-- Card 4 -->
+                <div class="group cursor-pointer">
+                    <div class="aspect-[2/3] w-full bg-surface-container-high rounded-md overflow-hidden relative mb-4 transition-transform duration-300 group-hover:scale-[1.02] shadow-2xl shadow-black/50">
+                        <img alt="Batman Cover" class="w-full h-full object-cover" data-alt="Dark comic book cover aesthetic" src="https://lh3.googleusercontent.com/aida-public/AB6AXuCSsDc1Du5bKnVsKHXPsSpCqJRVAQUz_YttPCJSqsHnYdI32WoauL47VCV8O-ru_GItXmpnRAQOY0gx_VjokwbBYsxvv3JdFvLPfFT9EX4HHZUHlGJC-3rUA98VQHIIIWQ_8ns2UCYi6caLytzlViojf3HbRpXWZAu-9aFUXQoRaoIqyM7HoDfWsRhjaPM5qz7DWqHf6OWy2_FNwQS_4-PLqra1POnra-tBI2CtoP7FSc6b6bHiR1XnLcV8h0PksH1uVuJpUCuMz4E" />
+                        <div class="absolute bottom-0 left-0 right-0 h-1 bg-surface-container-highest">
+                            <div class="h-full bg-primary w-[15%]"></div>
+                        </div>
+                    </div>
+                    <h4 class="font-bold text-sm text-white mb-1 group-hover:text-primary transition-colors">Batman: Year One</h4>
+                    <p class="text-[11px] text-on-surface-variant">Volume 1 • 15%</p>
+                </div>
+                <!-- Card 5 -->
+                <div class="group cursor-pointer">
+                    <div class="aspect-[2/3] w-full bg-surface-container-high rounded-md overflow-hidden relative mb-4 transition-transform duration-300 group-hover:scale-[1.02] shadow-2xl shadow-black/50">
+                        <img alt="Vagabond Cover" class="w-full h-full object-cover" data-alt="Ink brush style manga cover" src="https://lh3.googleusercontent.com/aida-public/AB6AXuAqQSrpCOZgkwyl6XwD2C2vKautlxtDBF0rjVgav4gDxKDtE0DIUdktH4OHlKttzw6ZLb4AJ7ol0QDwT3fw0xApnTYL2G--92ZCX-umaxdJCtOxi7X45kfF0sTpLHr_zdbW86VLzLFw_7KkkUGDgh1fSfvetaiHLNUaMedVJOqMXuueIuuqdEuM2Fu6QExQfgYX9y-RaoL59zlvryZ3L1gxTqtHM0r6j0RTqd5G0A8l2GmNNa4AqLVslgOvxOGSf7Dp_FkcvzFU9yo" />
+                        <div class="absolute bottom-0 left-0 right-0 h-1 bg-surface-container-highest">
+                            <div class="h-full bg-primary w-[60%]"></div>
+                        </div>
+                    </div>
+                    <h4 class="font-bold text-sm text-white mb-1 group-hover:text-primary transition-colors">Vagabond</h4>
+                    <p class="text-[11px] text-on-surface-variant">Chapter 12 • 60%</p>
+                </div>
+                <!-- Card 6 -->
+                <div class="group cursor-pointer">
+                    <div class="aspect-[2/3] w-full bg-surface-container-high rounded-md overflow-hidden relative mb-4 transition-transform duration-300 group-hover:scale-[1.02] shadow-2xl shadow-black/50">
+                        <img alt="Chainaw Man Cover" class="w-full h-full object-cover" data-alt="Abstract vibrant manga cover art" src="https://lh3.googleusercontent.com/aida-public/AB6AXuC0WEyl0T4pvioVtEmNgqCsMGC-qWDeYNsK7lyEGQlvErW3vONDDFwupAxO8sDP4sH3xQaI-3MD8YZDNA3NYGvL4eiLdh3Oqy1FvoysI9tsduzBHfKDBJRteOoXnXxVNLGIy16RdWWmVfek9AIS6t74NvUnNmWblqxXUppYYSv1NTIY8lzgu4_lz-8DJGngZjtxDw188SirvmmqUioZjSz1zM7_lRQqOMEsRZ_Y5447UlCjg5qZ0h_ocduAhBK_PAgCW46njuZYKhw" />
+                        <div class="absolute bottom-0 left-0 right-0 h-1 bg-surface-container-highest">
+                            <div class="h-full bg-primary w-[45%]"></div>
+                        </div>
+                    </div>
+                    <h4 class="font-bold text-sm text-white mb-1 group-hover:text-primary transition-colors">Chainsaw Man</h4>
+                    <p class="text-[11px] text-on-surface-variant">Chapter 88 • 45%</p>
+                </div>
+            </div>
+            <!-- Empty State Concept (Hidden by default but ready) -->
+            <div class="hidden flex flex-col items-center justify-center py-40">
+                <div class="w-24 h-24 bg-surface-container-high rounded-full flex items-center justify-center mb-6">
+                    <span class="material-symbols-outlined text-4xl opacity-20" data-icon="auto_stories">auto_stories</span>
+                </div>
+                <h4 class="text-xl font-bold mb-2">Your library is silent</h4>
+                <p class="text-on-surface-variant text-sm mb-8">Connect a directory to start your cinematic reading experience.</p>
+                <button class="px-8 py-3 bg-primary text-on-primary font-bold rounded-md hover:scale-105 transition-transform">
+                    Add Directory
+                </button>
+            </div>
+        </section>
+    </main>
+    <!-- Bottom Docked Control (HUD) -->
+    <div class="fixed bottom-6 left-1/2 -translate-x-1/2 z-50 flex items-center gap-8 py-3 px-8 bg-[#1B1B1B]/70 backdrop-blur-md rounded-full shadow-2xl shadow-black/50 border border-outline-variant/15 text-on-surface-variant text-xs font-semibold">
+        <button class="flex items-center gap-2 hover:text-white transition-colors">
+            <span class="material-symbols-outlined text-sm" data-icon="filter_list">filter_list</span>
+            <span>Sort: Recent</span>
+        </button>
+        <div class="w-px h-4 bg-outline-variant/30"></div>
+        <button class="flex items-center gap-2 hover:text-white transition-colors">
+            <span class="material-symbols-outlined text-sm" data-icon="grid_view" style="font-variation-settings: 'FILL' 1;">grid_view</span>
+            <span>View: Grid</span>
+        </button>
+        <div class="w-px h-4 bg-outline-variant/30"></div>
+        <button class="flex items-center gap-2 hover:text-white transition-colors">
+            <span class="material-symbols-outlined text-sm" data-icon="cloud_download">cloud_download</span>
+            <span>Sync</span>
+        </button>
+    </div>
+</body>
+
+</html>
