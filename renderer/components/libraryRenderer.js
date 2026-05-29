@@ -5,6 +5,7 @@ import {
   isFavorite,
   isSeen,
   LIBRARY_VIEWS,
+  setActiveCollectionDirectory,
   state,
   toggleFavoriteItem,
   toggleSeenItem
@@ -261,6 +262,10 @@ function pluralizeFolders(count) {
   return `${count} ${count === 1 ? 'pasta' : 'pastas'}`;
 }
 
+function formatFolderPath(directory) {
+  return directory || 'Arquivos locais';
+}
+
 function renderLibraryHeader(metaText) {
   const currentView = LIBRARY_VIEWS[state.activeLibraryView];
 
@@ -417,43 +422,83 @@ function createComicCard(item, onItemClick, index, { compact = false } = {}) {
   return card;
 }
 
-function renderFolderGroups(groups, onItemClick) {
-  groups.forEach((group, groupIndex) => {
-    const section = document.createElement('section');
-    section.className = 'folder-section';
-    section.style.animationDelay = `${Math.min(groupIndex * 0.05, 0.5)}s`;
+function createFolderCard(group, index, onItemClick) {
+  const card = document.createElement('button');
+  card.className = 'folder-card';
+  card.type = 'button';
+  card.title = formatFolderPath(group.directory);
+  card.style.animationDelay = `${Math.min(index * 0.04, 0.4)}s`;
+  card.addEventListener('click', () => {
+    setActiveCollectionDirectory(group.directory);
+    renderLibraryItems(onItemClick);
+  });
 
-    const heading = document.createElement('div');
-    heading.className = 'folder-heading';
+  const icon = document.createElement('span');
+  icon.className = 'material-symbols-outlined folder-card-icon';
+  icon.textContent = 'folder';
 
-    const icon = document.createElement('span');
-    icon.className = 'material-symbols-outlined folder-icon';
-    icon.textContent = 'folder';
+  const copy = document.createElement('span');
+  copy.className = 'folder-card-copy';
 
-    const copy = document.createElement('div');
-    copy.className = 'folder-copy';
+  const title = document.createElement('strong');
+  title.textContent = group.name;
 
-    const title = document.createElement('h3');
-    title.textContent = group.name;
+  const meta = document.createElement('span');
+  meta.textContent = pluralizeTitles(group.items.length);
 
-    const meta = document.createElement('p');
-    meta.title = group.directory;
-    meta.textContent = `${pluralizeTitles(group.items.length)} - ${group.directory || 'Arquivos locais'}`;
+  const path = document.createElement('small');
+  path.textContent = formatFolderPath(group.directory);
 
-    const grid = document.createElement('div');
-    grid.className = 'folder-comics-grid';
+  const arrow = document.createElement('span');
+  arrow.className = 'material-symbols-outlined folder-card-arrow';
+  arrow.textContent = 'chevron_right';
 
-    group.items.forEach((item, itemIndex) => {
-      grid.appendChild(createComicCard(item, onItemClick, itemIndex, { compact: true }));
-    });
+  copy.appendChild(title);
+  copy.appendChild(meta);
+  copy.appendChild(path);
+  card.appendChild(icon);
+  card.appendChild(copy);
+  card.appendChild(arrow);
 
-    copy.appendChild(title);
-    copy.appendChild(meta);
-    heading.appendChild(icon);
-    heading.appendChild(copy);
-    section.appendChild(heading);
-    section.appendChild(grid);
-    els.libraryGrid.appendChild(section);
+  return card;
+}
+
+function renderFolderCards(groups, onItemClick) {
+  groups.forEach((group, index) => {
+    els.libraryGrid.appendChild(createFolderCard(group, index, onItemClick));
+  });
+}
+
+function renderFolderDetail(group, onItemClick) {
+  if (els.libraryViewTitle) els.libraryViewTitle.textContent = group.name;
+  if (els.libraryViewDescription) els.libraryViewDescription.textContent = formatFolderPath(group.directory);
+  if (els.librarySectionTitle) els.librarySectionTitle.textContent = 'Conteúdo da pasta';
+
+  const top = document.createElement('div');
+  top.className = 'folder-detail-top';
+
+  const backButton = document.createElement('button');
+  backButton.className = 'folder-back-btn';
+  backButton.type = 'button';
+  backButton.addEventListener('click', () => {
+    setActiveCollectionDirectory('');
+    renderLibraryItems(onItemClick);
+  });
+
+  const backIcon = document.createElement('span');
+  backIcon.className = 'material-symbols-outlined';
+  backIcon.textContent = 'arrow_back';
+
+  const backLabel = document.createElement('span');
+  backLabel.textContent = 'Pastas';
+
+  backButton.appendChild(backIcon);
+  backButton.appendChild(backLabel);
+  top.appendChild(backButton);
+  els.libraryGrid.appendChild(top);
+
+  group.items.forEach((item, itemIndex) => {
+    els.libraryGrid.appendChild(createComicCard(item, onItemClick, itemIndex));
   });
 }
 
@@ -463,8 +508,16 @@ export function renderLibraryItems(onItemClick) {
   if (state.activeLibraryView === 'collection') {
     const groups = getLibraryFolderGroups();
     const totalItems = state.libraryItems.length;
+    const activeGroup = state.activeCollectionDirectory
+      ? groups.find((group) => group.directory === state.activeCollectionDirectory)
+      : null;
+
+    if (state.activeCollectionDirectory && !activeGroup) {
+      setActiveCollectionDirectory('');
+    }
+
     renderLibraryHeader(`${pluralizeFolders(groups.length)} - ${pluralizeTitles(totalItems)}`);
-    els.libraryGrid.className = 'folder-stack';
+    els.libraryGrid.className = activeGroup ? 'library-grid folder-detail-grid' : 'folder-browser-grid';
 
     if (groups.length === 0) {
       els.libraryEmpty.classList.add('is-visible');
@@ -473,7 +526,12 @@ export function renderLibraryItems(onItemClick) {
     }
 
     els.libraryEmpty.classList.remove('is-visible');
-    renderFolderGroups(groups, onItemClick);
+    if (activeGroup) {
+      renderLibraryHeader(pluralizeTitles(activeGroup.items.length));
+      renderFolderDetail(activeGroup, onItemClick);
+    } else {
+      renderFolderCards(groups, onItemClick);
+    }
     return;
   }
 

@@ -464,6 +464,114 @@ button {
   gap: 30px 22px;
 }
 
+.folder-browser-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+  gap: 14px;
+}
+
+.folder-card {
+  min-width: 0;
+  min-height: 104px;
+  display: grid;
+  grid-template-columns: 42px minmax(0, 1fr) 24px;
+  align-items: center;
+  gap: 14px;
+  padding: 16px;
+  border: 1px solid var(--library-line);
+  border-radius: 8px;
+  background: var(--library-control-bg);
+  color: var(--library-text);
+  cursor: pointer;
+  text-align: left;
+  animation: card-in 300ms ease both;
+  transition: transform 160ms ease, border-color 160ms ease, background 160ms ease;
+}
+
+.folder-card:hover,
+.folder-card:focus-visible {
+  transform: translateY(-2px);
+  border-color: var(--library-focus);
+  background: var(--library-control-hover);
+  outline: none;
+}
+
+.folder-card-icon {
+  width: 42px;
+  height: 42px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid var(--library-line);
+  border-radius: 8px;
+  color: var(--library-accent);
+  font-size: 23px;
+}
+
+.folder-card-copy {
+  min-width: 0;
+  display: grid;
+  gap: 4px;
+}
+
+.folder-card-copy strong,
+.folder-card-copy span,
+.folder-card-copy small {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.folder-card-copy strong {
+  font-size: 15px;
+  font-weight: 800;
+}
+
+.folder-card-copy span,
+.folder-card-copy small {
+  color: var(--library-muted);
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.folder-card-arrow {
+  color: var(--library-muted);
+  font-size: 22px;
+}
+
+.folder-detail-grid {
+  align-items: start;
+}
+
+.folder-detail-top {
+  grid-column: 1 / -1;
+}
+
+.folder-back-btn {
+  min-height: 34px;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 0 12px;
+  border: 1px solid var(--library-line);
+  border-radius: 8px;
+  background: var(--library-control-bg);
+  color: var(--library-text);
+  cursor: pointer;
+  font-size: 13px;
+  font-weight: 800;
+}
+
+.folder-back-btn:hover {
+  border-color: var(--library-focus);
+  background: var(--library-control-hover);
+}
+
+.folder-back-btn .material-symbols-outlined {
+  font-size: 18px;
+}
+
 .folder-stack {
   display: flex;
   flex-direction: column;
@@ -1104,6 +1212,10 @@ button {
   .library-grid {
     grid-template-columns: repeat(auto-fill, minmax(138px, 1fr));
     gap: 24px 16px;
+  }
+
+  .folder-browser-grid {
+    grid-template-columns: 1fr;
   }
 
   .folder-comics-grid {

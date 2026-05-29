@@ -18,6 +18,7 @@ export const state = {
   libraryDirectories: [],
   libraryItems: [],
   activeLibraryView: 'collection',
+  activeCollectionDirectory: '',
   activeTheme: 'dark',
   readingProgress: {},
   recentItems: [],
@@ -214,7 +215,14 @@ export function addLibraryDirectory(directoryPath) {
 export function setLibraryView(viewName) {
   if (!LIBRARY_VIEWS[viewName]) return;
   state.activeLibraryView = viewName;
+  if (viewName !== 'collection') {
+    state.activeCollectionDirectory = '';
+  }
   writeStorage(STORAGE_KEYS.view, viewName);
+}
+
+export function setActiveCollectionDirectory(directory) {
+  state.activeCollectionDirectory = directory || '';
 }
 
 export function setLibraryTheme(themeName) {
