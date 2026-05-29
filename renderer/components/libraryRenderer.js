@@ -12,8 +12,16 @@ import {
 import { els } from '../utils/dom.js';
 
 const coverPreviewCache = new Map();
-const PDF_PREVIEW_MAX_WIDTH = 360;
-const PDF_PREVIEW_MAX_HEIGHT = 540;
+const queuedCoverLoads = [];
+const PDF_PREVIEW_MAX_WIDTH = 220;
+const PDF_PREVIEW_MAX_HEIGHT = 330;
+const COVER_PREVIEW_MAX_WIDTH = 220;
+const COVER_PREVIEW_MAX_HEIGHT = 330;
+const COVER_PREVIEW_QUALITY = 0.68;
+const MAX_ACTIVE_COVER_LOADS = 2;
+
+let activeCoverLoads = 0;
+let coverObserver = null;
 
 export function renderDirectoryList() {
   els.directoryList.innerHTML = '';
@@ -84,20 +92,53 @@ async function renderPdfFirstPagePreview(filePath) {
 
     await page.render({ canvasContext: context, viewport }).promise;
 
-    return canvas.toDataURL('image/jpeg', 0.82);
+    return canvas.toDataURL('image/jpeg', COVER_PREVIEW_QUALITY);
   } finally {
     if (pdfDocument?.destroy) await pdfDocument.destroy();
   }
 }
 
+function waitForPreviewImage(src) {
+  return new Promise((resolve, reject) => {
+    const image = new Image();
+    image.onload = () => resolve(image);
+    image.onerror = () => reject(new Error('Falha ao carregar preview da capa.'));
+    image.src = src;
+  });
+}
+
+async function compressCoverPreview(preview) {
+  if (!preview?.startsWith('data:image/')) return preview;
+
+  const image = await waitForPreviewImage(preview);
+  if (!image.naturalWidth || !image.naturalHeight) return preview;
+
+  const scale = Math.min(
+    COVER_PREVIEW_MAX_WIDTH / image.naturalWidth,
+    COVER_PREVIEW_MAX_HEIGHT / image.naturalHeight,
+    1
+  );
+  const width = Math.max(1, Math.round(image.naturalWidth * scale));
+  const height = Math.max(1, Math.round(image.naturalHeight * scale));
+  const canvas = document.createElement('canvas');
+  const context = canvas.getContext('2d', { alpha: false });
+
+  canvas.width = width;
+  canvas.height = height;
+  context.fillStyle = '#ffffff';
+  context.fillRect(0, 0, width, height);
+  context.drawImage(image, 0, 0, width, height);
+
+  return canvas.toDataURL('image/jpeg', COVER_PREVIEW_QUALITY);
+}
+
 async function createCoverPreview(filePath) {
   const ext = filePath.toLowerCase().split('.').pop();
+  const preview = ext === 'pdf'
+    ? await renderPdfFirstPagePreview(filePath)
+    : await window.mhq.getComicCover(filePath);
 
-  if (ext === 'pdf') {
-    return renderPdfFirstPagePreview(filePath);
-  }
-
-  return window.mhq.getComicCover(filePath);
+  return compressCoverPreview(preview);
 }
 
 function getCoverPreview(filePath) {
@@ -114,7 +155,18 @@ function getCoverPreview(filePath) {
   return coverPreviewCache.get(filePath);
 }
 
-export async function fetchAndDisplayCover(filePath, imgEl) {
+function requestCoverIdleCallback(callback) {
+  if ('requestIdleCallback' in window) {
+    window.requestIdleCallback(callback, { timeout: 700 });
+    return;
+  }
+
+  window.setTimeout(callback, 16);
+}
+
+async function loadAndDisplayCover(filePath, imgEl) {
+  if (!filePath || !imgEl.isConnected) return;
+
   try {
     const preview = await getCoverPreview(filePath);
     if (preview && imgEl.isConnected) {
@@ -124,6 +176,62 @@ export async function fetchAndDisplayCover(filePath, imgEl) {
   } catch (err) {
     console.error('Error fetching cover for', filePath, err);
   }
+}
+
+function drainCoverQueue() {
+  while (activeCoverLoads < MAX_ACTIVE_COVER_LOADS && queuedCoverLoads.length > 0) {
+    const task = queuedCoverLoads.shift();
+
+    if (!task.imgEl.isConnected) {
+      continue;
+    }
+
+    activeCoverLoads += 1;
+    loadAndDisplayCover(task.filePath, task.imgEl).finally(() => {
+      activeCoverLoads -= 1;
+      requestCoverIdleCallback(drainCoverQueue);
+    });
+  }
+}
+
+function enqueueCoverLoad(filePath, imgEl) {
+  if (!filePath || !imgEl.isConnected) return;
+
+  queuedCoverLoads.push({ filePath, imgEl });
+  requestCoverIdleCallback(drainCoverQueue);
+}
+
+function getCoverObserver() {
+  if (!('IntersectionObserver' in window)) return null;
+
+  if (!coverObserver) {
+    coverObserver = new IntersectionObserver((entries) => {
+      entries.forEach((entry) => {
+        if (!entry.isIntersecting) return;
+
+        const imgEl = entry.target;
+        coverObserver.unobserve(imgEl);
+        enqueueCoverLoad(imgEl.dataset.coverPath || '', imgEl);
+      });
+    }, {
+      root: null,
+      rootMargin: '420px 0px'
+    });
+  }
+
+  return coverObserver;
+}
+
+export function fetchAndDisplayCover(filePath, imgEl) {
+  imgEl.dataset.coverPath = filePath;
+
+  const observer = getCoverObserver();
+  if (!observer) {
+    enqueueCoverLoad(filePath, imgEl);
+    return;
+  }
+
+  observer.observe(imgEl);
 }
 
 function formatDirectory(item) {
@@ -239,6 +347,7 @@ function createComicCard(item, onItemClick, index, { compact = false } = {}) {
   const imgEl = document.createElement('img');
   imgEl.className = 'comic-cover';
   imgEl.loading = 'lazy';
+  imgEl.decoding = 'async';
   imgEl.alt = `Preview de ${item.title}`;
 
   const favorite = isFavorite(item.filePath);

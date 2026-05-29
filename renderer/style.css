@@ -533,7 +533,13 @@ button {
   min-width: 0;
   cursor: pointer;
   outline: none;
+  content-visibility: auto;
+  contain-intrinsic-size: 240px 360px;
   animation: card-in 360ms ease both;
+}
+
+.library-card.is-compact {
+  contain-intrinsic-size: 164px 246px;
 }
 
 .library-card.is-compact .cover-action-btn {
