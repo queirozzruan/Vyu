@@ -1,4 +1,14 @@
-import { getLibraryFolderGroups, getReadingProgressPercent, getVisibleLibraryItems, isFavorite, LIBRARY_VIEWS, state, toggleFavoriteItem } from '../store/state.js';
+import {
+  getLibraryFolderGroups,
+  getReadingProgressPercent,
+  getVisibleLibraryItems,
+  isFavorite,
+  isSeen,
+  LIBRARY_VIEWS,
+  state,
+  toggleFavoriteItem,
+  toggleSeenItem
+} from '../store/state.js';
 import { els } from '../utils/dom.js';
 
 const coverPreviewCache = new Map();
@@ -187,6 +197,25 @@ function renderEmptyState() {
   els.libraryEmpty.appendChild(text);
 }
 
+function createCoverActionButton({ className, iconName, active, title, onClick }) {
+  const button = document.createElement('button');
+  button.className = `cover-action-btn ${className}${active ? ' is-active' : ''}`;
+  button.type = 'button';
+  button.title = title;
+  button.setAttribute('aria-pressed', String(active));
+  button.addEventListener('click', (event) => {
+    event.stopPropagation();
+    onClick();
+  });
+
+  const icon = document.createElement('span');
+  icon.className = 'material-symbols-outlined';
+  icon.textContent = iconName;
+
+  button.appendChild(icon);
+  return button;
+}
+
 function createComicCard(item, onItemClick, index, { compact = false } = {}) {
   const card = document.createElement('div');
   card.className = `library-card${compact ? ' is-compact' : ''}`;
@@ -212,21 +241,32 @@ function createComicCard(item, onItemClick, index, { compact = false } = {}) {
   imgEl.loading = 'lazy';
   imgEl.alt = `Preview de ${item.title}`;
 
-  const favoriteButton = document.createElement('button');
   const favorite = isFavorite(item.filePath);
-  favoriteButton.className = `favorite-btn${favorite ? ' is-favorite' : ''}`;
-  favoriteButton.type = 'button';
-  favoriteButton.title = favorite ? 'Remover dos favoritos' : 'Adicionar aos favoritos';
-  favoriteButton.setAttribute('aria-pressed', String(favorite));
-  favoriteButton.addEventListener('click', (event) => {
-    event.stopPropagation();
-    toggleFavoriteItem(item);
-    renderLibraryItems(onItemClick);
+  const seen = isSeen(item.filePath);
+  const actions = document.createElement('div');
+  actions.className = 'cover-actions';
+
+  const favoriteButton = createCoverActionButton({
+    className: 'favorite-btn',
+    iconName: 'star',
+    active: favorite,
+    title: favorite ? 'Remover dos favoritos' : 'Adicionar aos favoritos',
+    onClick: () => {
+      toggleFavoriteItem(item);
+      renderLibraryItems(onItemClick);
+    }
   });
 
-  const favoriteIcon = document.createElement('span');
-  favoriteIcon.className = 'material-symbols-outlined';
-  favoriteIcon.textContent = 'star';
+  const seenButton = createCoverActionButton({
+    className: 'seen-btn',
+    iconName: 'visibility',
+    active: seen,
+    title: seen ? 'Remover dos vistos' : 'Marcar como visto',
+    onClick: () => {
+      toggleSeenItem(item);
+      renderLibraryItems(onItemClick);
+    }
+  });
 
   const overlay = document.createElement('div');
   overlay.className = 'cover-accent';
@@ -235,11 +275,12 @@ function createComicCard(item, onItemClick, index, { compact = false } = {}) {
   progress.className = 'cover-accent-fill';
   progress.style.width = `${getReadingProgressPercent(item.filePath)}%`;
 
-  favoriteButton.appendChild(favoriteIcon);
+  actions.appendChild(favoriteButton);
+  actions.appendChild(seenButton);
   overlay.appendChild(progress);
   coverWrapper.appendChild(icon);
   coverWrapper.appendChild(imgEl);
-  coverWrapper.appendChild(favoriteButton);
+  coverWrapper.appendChild(actions);
   coverWrapper.appendChild(overlay);
 
   const titleEl = document.createElement('h4');

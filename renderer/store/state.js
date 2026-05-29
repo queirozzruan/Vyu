@@ -21,7 +21,8 @@ export const state = {
   activeTheme: 'dark',
   readingProgress: {},
   recentItems: [],
-  favoriteItems: []
+  favoriteItems: [],
+  seenItems: []
 };
 
 export const LIBRARY_VIEWS = {
@@ -55,6 +56,7 @@ const STORAGE_KEYS = {
   directories: 'vyu:library-directories',
   recent: 'vyu:recent-items',
   favorites: 'vyu:favorite-items',
+  seen: 'vyu:seen-items',
   view: 'vyu:active-library-view',
   theme: 'vyu:theme',
   readerMode: 'vyu:reader-mode',
@@ -65,6 +67,7 @@ const LEGACY_STORAGE_KEYS = {
   directories: 'mhqviewer:library-directories',
   recent: 'mhqviewer:recent-items',
   favorites: 'mhqviewer:favorite-items',
+  seen: 'mhqviewer:seen-items',
   view: 'mhqviewer:active-library-view',
   theme: 'mhqviewer:theme',
   readerMode: 'mhqviewer:reader-mode',
@@ -180,7 +183,8 @@ export function normalizeLibraryItem(item = {}) {
     directory: item.directory || getDirectoryFromPath(item.filePath),
     extension: (item.extension || getExtensionFromPath(item.filePath)).toLowerCase(),
     lastOpenedAt: item.lastOpenedAt || null,
-    favoritedAt: item.favoritedAt || null
+    favoritedAt: item.favoritedAt || null,
+    seenAt: item.seenAt || null
   };
 }
 
@@ -195,6 +199,7 @@ export function hydrateLibraryPreferences() {
   state.readingProgress = normalizeReadingProgress(readPreference('readingProgress', {}));
   state.recentItems = readPreference('recent', []).map(normalizeLibraryItem);
   state.favoriteItems = readPreference('favorites', []).map(normalizeLibraryItem);
+  state.seenItems = readPreference('seen', []).map(normalizeLibraryItem);
 }
 
 export function persistLibraryDirectories(directories = state.libraryDirectories) {
@@ -241,6 +246,8 @@ export function getReadingProgress(filePath, totalPages = null) {
 }
 
 export function getReadingProgressPercent(filePath) {
+  if (isSeen(filePath)) return 100;
+
   const progress = getReadingProgress(filePath);
   if (!progress || progress.totalPages <= 0) return 0;
 
@@ -274,6 +281,10 @@ export function isFavorite(filePath) {
   return state.favoriteItems.some((item) => item.filePath === filePath);
 }
 
+export function isSeen(filePath) {
+  return state.seenItems.some((item) => item.filePath === filePath);
+}
+
 export function toggleFavoriteItem(item) {
   const normalized = normalizeLibraryItem(item);
   const existingIndex = state.favoriteItems.findIndex((favorite) => favorite.filePath === normalized.filePath);
@@ -285,6 +296,19 @@ export function toggleFavoriteItem(item) {
   }
 
   writeStorage(STORAGE_KEYS.favorites, state.favoriteItems);
+}
+
+export function toggleSeenItem(item) {
+  const normalized = normalizeLibraryItem(item);
+  const existingIndex = state.seenItems.findIndex((seen) => seen.filePath === normalized.filePath);
+
+  if (existingIndex >= 0) {
+    state.seenItems.splice(existingIndex, 1);
+  } else {
+    state.seenItems.unshift({ ...normalized, seenAt: Date.now() });
+  }
+
+  writeStorage(STORAGE_KEYS.seen, state.seenItems);
 }
 
 export function rememberRecentItem(item) {
@@ -308,8 +332,14 @@ export function reconcileLibraryCollections(items) {
     return current ? { ...current, lastOpenedAt: item.lastOpenedAt, favoritedAt: item.favoritedAt } : item;
   });
 
+  state.seenItems = state.seenItems.map((item) => {
+    const current = byPath.get(item.filePath);
+    return current ? { ...current, lastOpenedAt: item.lastOpenedAt, seenAt: item.seenAt } : item;
+  });
+
   writeStorage(STORAGE_KEYS.recent, state.recentItems);
   writeStorage(STORAGE_KEYS.favorites, state.favoriteItems);
+  writeStorage(STORAGE_KEYS.seen, state.seenItems);
 }
 
 export function getVisibleLibraryItems() {
