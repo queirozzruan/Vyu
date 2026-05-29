@@ -3,6 +3,7 @@ const path = require('path');
 
 function createMainWindow(basePath) {
   const mainWindow = new BrowserWindow({
+    title: 'Vyu',
     width: 1440,
     height: 900,
     minWidth: 1100,

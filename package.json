@@ -1,7 +1,7 @@
 ﻿{
-  "name": "mhqviewer",
+  "name": "vyu",
   "version": "1.0.0",
-  "description": "Leitor desktop de HQs e Mangás (.pdf, .cbz, .cbr) com Electron",
+  "description": "Vyu - leitor desktop de HQs e Mangás (.pdf, .cbz, .cbr) com Electron",
   "main": "main.js",
   "author": "Ruan Queiroz",
   "license": "MIT",

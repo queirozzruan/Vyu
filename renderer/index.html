@@ -4,11 +4,11 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>MHQViewer</title>
+  <title>Vyu</title>
   <script>
     (() => {
       try {
-        const savedTheme = window.localStorage.getItem('mhqviewer:theme');
+        const savedTheme = window.localStorage.getItem('vyu:theme') || window.localStorage.getItem('mhqviewer:theme');
         const parsedTheme = savedTheme ? JSON.parse(savedTheme) : 'dark';
         const theme = parsedTheme === 'light' ? 'light' : 'dark';
         document.documentElement.dataset.theme = theme;
@@ -85,9 +85,9 @@
       <div class="library-backdrop" aria-hidden="true"></div>
 
       <header class="floating-menu" aria-label="Menu da biblioteca">
-        <div class="brand-mark" aria-label="MHQViewer">
-          <span class="brand-symbol">M</span>
-          <span class="brand-name">MHQViewer</span>
+        <div class="brand-mark" aria-label="Vyu">
+          <span class="brand-symbol">V</span>
+          <span class="brand-name">Vyu</span>
         </div>
 
         <nav id="library-view-tabs" class="view-tabs" aria-label="Vistas da biblioteca" role="tablist">

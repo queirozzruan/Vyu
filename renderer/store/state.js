@@ -47,6 +47,13 @@ export const LIBRARY_VIEWS = {
 };
 
 const STORAGE_KEYS = {
+  recent: 'vyu:recent-items',
+  favorites: 'vyu:favorite-items',
+  view: 'vyu:active-library-view',
+  theme: 'vyu:theme'
+};
+
+const LEGACY_STORAGE_KEYS = {
   recent: 'mhqviewer:recent-items',
   favorites: 'mhqviewer:favorite-items',
   view: 'mhqviewer:active-library-view',
@@ -64,6 +71,13 @@ function readStorage(key, fallback) {
   } catch {
     return fallback;
   }
+}
+
+function readPreference(name, fallback) {
+  const value = readStorage(STORAGE_KEYS[name], null);
+  if (value !== null) return value;
+
+  return readStorage(LEGACY_STORAGE_KEYS[name], fallback);
 }
 
 function writeStorage(key, value) {
@@ -108,12 +122,12 @@ export function normalizeLibraryItem(item = {}) {
 }
 
 export function hydrateLibraryPreferences() {
-  const savedView = readStorage(STORAGE_KEYS.view, 'collection');
-  const savedTheme = readStorage(STORAGE_KEYS.theme, 'dark');
+  const savedView = readPreference('view', 'collection');
+  const savedTheme = readPreference('theme', 'dark');
   state.activeLibraryView = LIBRARY_VIEWS[savedView] ? savedView : 'collection';
   state.activeTheme = LIBRARY_THEMES.includes(savedTheme) ? savedTheme : 'dark';
-  state.recentItems = readStorage(STORAGE_KEYS.recent, []).map(normalizeLibraryItem);
-  state.favoriteItems = readStorage(STORAGE_KEYS.favorites, []).map(normalizeLibraryItem);
+  state.recentItems = readPreference('recent', []).map(normalizeLibraryItem);
+  state.favoriteItems = readPreference('favorites', []).map(normalizeLibraryItem);
 }
 
 export function setLibraryView(viewName) {
