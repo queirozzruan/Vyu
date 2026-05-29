@@ -10,6 +10,7 @@ function createMainWindow(basePath) {
     minHeight: 700,
     backgroundColor: '#0e0e0e',
     autoHideMenuBar: true,
+    icon: path.join(basePath, 'assets', 'Vyuicon.png'),
     webPreferences: {
       preload: path.join(basePath, 'preload.js'),
       nodeIntegration: false,

@@ -14,6 +14,7 @@
   "build": {
     "appId": "com.ruanqueiroz.vyu",
     "productName": "Vyu",
+    "icon": "assets/Vyuicon.png",
     "asar": false,
     "directories": {
       "output": "dist"
@@ -21,12 +22,14 @@
     "files": [
       "main/**/*",
       "renderer/**/*",
+      "assets/**/*",
       "main.js",
       "preload.js",
       "package.json"
     ],
     "win": {
       "target": "portable",
+      "icon": "assets/Vyuicon.png",
       "signAndEditExecutable": false
     },
     "nsis": {
