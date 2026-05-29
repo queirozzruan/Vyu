@@ -1,4 +1,4 @@
-import { getVisibleLibraryItems, isFavorite, LIBRARY_VIEWS, state, toggleFavoriteItem } from '../store/state.js';
+import { getLibraryFolderGroups, getVisibleLibraryItems, isFavorite, LIBRARY_VIEWS, state, toggleFavoriteItem } from '../store/state.js';
 import { els } from '../utils/dom.js';
 
 const coverPreviewCache = new Map();
@@ -139,13 +139,17 @@ function pluralizeTitles(count) {
   return `${count} ${count === 1 ? 't\u00edtulo' : 't\u00edtulos'}`;
 }
 
-function renderLibraryHeader(items) {
+function pluralizeFolders(count) {
+  return `${count} ${count === 1 ? 'pasta' : 'pastas'}`;
+}
+
+function renderLibraryHeader(metaText) {
   const currentView = LIBRARY_VIEWS[state.activeLibraryView];
 
   if (els.libraryViewTitle) els.libraryViewTitle.textContent = currentView.title;
   if (els.libraryViewDescription) els.libraryViewDescription.textContent = currentView.description;
   if (els.librarySectionTitle) els.librarySectionTitle.textContent = currentView.sectionTitle;
-  els.libraryMeta.textContent = pluralizeTitles(items.length);
+  els.libraryMeta.textContent = metaText;
 
   if (!els.libraryViewTabs) return;
 
@@ -183,11 +187,148 @@ function renderEmptyState() {
   els.libraryEmpty.appendChild(text);
 }
 
+function createComicCard(item, onItemClick, index, { compact = false } = {}) {
+  const card = document.createElement('div');
+  card.className = `library-card${compact ? ' is-compact' : ''}`;
+  card.setAttribute('role', 'button');
+  card.tabIndex = 0;
+  card.style.animationDelay = `${Math.min(index * 0.05, 0.5)}s`;
+  card.addEventListener('click', () => onItemClick(item.filePath));
+  card.addEventListener('keydown', (event) => {
+    if (event.key !== 'Enter' && event.key !== ' ') return;
+    event.preventDefault();
+    onItemClick(item.filePath);
+  });
+
+  const coverWrapper = document.createElement('div');
+  coverWrapper.className = 'cover-frame';
+
+  const icon = document.createElement('span');
+  icon.className = 'material-symbols-outlined cover-placeholder';
+  icon.textContent = 'image';
+
+  const imgEl = document.createElement('img');
+  imgEl.className = 'comic-cover';
+  imgEl.loading = 'lazy';
+  imgEl.alt = `Preview de ${item.title}`;
+
+  const favoriteButton = document.createElement('button');
+  const favorite = isFavorite(item.filePath);
+  favoriteButton.className = `favorite-btn${favorite ? ' is-favorite' : ''}`;
+  favoriteButton.type = 'button';
+  favoriteButton.title = favorite ? 'Remover dos favoritos' : 'Adicionar aos favoritos';
+  favoriteButton.setAttribute('aria-pressed', String(favorite));
+  favoriteButton.addEventListener('click', (event) => {
+    event.stopPropagation();
+    toggleFavoriteItem(item);
+    renderLibraryItems(onItemClick);
+  });
+
+  const favoriteIcon = document.createElement('span');
+  favoriteIcon.className = 'material-symbols-outlined';
+  favoriteIcon.textContent = 'star';
+
+  const overlay = document.createElement('div');
+  overlay.className = 'cover-accent';
+
+  const progress = document.createElement('div');
+  progress.className = 'cover-accent-fill';
+
+  favoriteButton.appendChild(favoriteIcon);
+  overlay.appendChild(progress);
+  coverWrapper.appendChild(icon);
+  coverWrapper.appendChild(imgEl);
+  coverWrapper.appendChild(favoriteButton);
+  coverWrapper.appendChild(overlay);
+
+  const titleEl = document.createElement('h4');
+  titleEl.className = 'card-title';
+  titleEl.title = item.title;
+  titleEl.textContent = item.title;
+
+  const subEl = document.createElement('p');
+  subEl.className = 'card-meta';
+
+  const cleanDir = formatDirectory(item);
+  const recentDate = state.activeLibraryView === 'recent' ? formatRecentDate(item.lastOpenedAt) : null;
+  subEl.textContent = compact
+    ? item.extension.toUpperCase()
+    : recentDate
+      ? `${item.extension.toUpperCase()} - ${cleanDir} - ${recentDate}`
+      : `${item.extension.toUpperCase()} - ${cleanDir}`;
+
+  card.appendChild(coverWrapper);
+  card.appendChild(titleEl);
+  card.appendChild(subEl);
+
+  fetchAndDisplayCover(item.filePath, imgEl);
+
+  return card;
+}
+
+function renderFolderGroups(groups, onItemClick) {
+  groups.forEach((group, groupIndex) => {
+    const section = document.createElement('section');
+    section.className = 'folder-section';
+    section.style.animationDelay = `${Math.min(groupIndex * 0.05, 0.5)}s`;
+
+    const heading = document.createElement('div');
+    heading.className = 'folder-heading';
+
+    const icon = document.createElement('span');
+    icon.className = 'material-symbols-outlined folder-icon';
+    icon.textContent = 'folder';
+
+    const copy = document.createElement('div');
+    copy.className = 'folder-copy';
+
+    const title = document.createElement('h3');
+    title.textContent = group.name;
+
+    const meta = document.createElement('p');
+    meta.title = group.directory;
+    meta.textContent = `${pluralizeTitles(group.items.length)} - ${group.directory || 'Arquivos locais'}`;
+
+    const grid = document.createElement('div');
+    grid.className = 'folder-comics-grid';
+
+    group.items.forEach((item, itemIndex) => {
+      grid.appendChild(createComicCard(item, onItemClick, itemIndex, { compact: true }));
+    });
+
+    copy.appendChild(title);
+    copy.appendChild(meta);
+    heading.appendChild(icon);
+    heading.appendChild(copy);
+    section.appendChild(heading);
+    section.appendChild(grid);
+    els.libraryGrid.appendChild(section);
+  });
+}
+
 export function renderLibraryItems(onItemClick) {
   els.libraryGrid.innerHTML = '';
 
+  if (state.activeLibraryView === 'collection') {
+    const groups = getLibraryFolderGroups();
+    const totalItems = state.libraryItems.length;
+    renderLibraryHeader(`${pluralizeFolders(groups.length)} - ${pluralizeTitles(totalItems)}`);
+    els.libraryGrid.className = 'folder-stack';
+
+    if (groups.length === 0) {
+      els.libraryEmpty.classList.add('is-visible');
+      renderEmptyState();
+      return;
+    }
+
+    els.libraryEmpty.classList.remove('is-visible');
+    renderFolderGroups(groups, onItemClick);
+    return;
+  }
+
   const items = getVisibleLibraryItems();
-  renderLibraryHeader(items);
+  renderLibraryHeader(pluralizeTitles(items.length));
+  els.libraryGrid.className = 'library-grid';
 
   if (items.length === 0) {
     els.libraryEmpty.classList.add('is-visible');
@@ -198,79 +339,6 @@ export function renderLibraryItems(onItemClick) {
   els.libraryEmpty.classList.remove('is-visible');
 
   items.forEach((item, index) => {
-    const card = document.createElement('div');
-    card.className = 'library-card';
-    card.setAttribute('role', 'button');
-    card.tabIndex = 0;
-    card.style.animationDelay = `${Math.min(index * 0.05, 0.5)}s`;
-    card.addEventListener('click', () => onItemClick(item.filePath));
-    card.addEventListener('keydown', (event) => {
-      if (event.key !== 'Enter' && event.key !== ' ') return;
-      event.preventDefault();
-      onItemClick(item.filePath);
-    });
-
-    const coverWrapper = document.createElement('div');
-    coverWrapper.className = 'cover-frame';
-
-    const icon = document.createElement('span');
-    icon.className = 'material-symbols-outlined cover-placeholder';
-    icon.textContent = 'image';
-
-    const imgEl = document.createElement('img');
-    imgEl.className = 'comic-cover';
-    imgEl.loading = 'lazy';
-    imgEl.alt = `Preview de ${item.title}`;
-
-    const favoriteButton = document.createElement('button');
-    const favorite = isFavorite(item.filePath);
-    favoriteButton.className = `favorite-btn${favorite ? ' is-favorite' : ''}`;
-    favoriteButton.type = 'button';
-    favoriteButton.title = favorite ? 'Remover dos favoritos' : 'Adicionar aos favoritos';
-    favoriteButton.setAttribute('aria-pressed', String(favorite));
-    favoriteButton.addEventListener('click', (event) => {
-      event.stopPropagation();
-      toggleFavoriteItem(item);
-      renderLibraryItems(onItemClick);
-    });
-
-    const favoriteIcon = document.createElement('span');
-    favoriteIcon.className = 'material-symbols-outlined';
-    favoriteIcon.textContent = 'star';
-
-    const overlay = document.createElement('div');
-    overlay.className = 'cover-accent';
-
-    const progress = document.createElement('div');
-    progress.className = 'cover-accent-fill';
-
-    favoriteButton.appendChild(favoriteIcon);
-    overlay.appendChild(progress);
-    coverWrapper.appendChild(icon);
-    coverWrapper.appendChild(imgEl);
-    coverWrapper.appendChild(favoriteButton);
-    coverWrapper.appendChild(overlay);
-
-    const titleEl = document.createElement('h4');
-    titleEl.className = 'card-title';
-    titleEl.title = item.title;
-    titleEl.textContent = item.title;
-
-    const subEl = document.createElement('p');
-    subEl.className = 'card-meta';
-
-    const cleanDir = formatDirectory(item);
-    const recentDate = state.activeLibraryView === 'recent' ? formatRecentDate(item.lastOpenedAt) : null;
-    subEl.textContent = recentDate
-      ? `${item.extension.toUpperCase()} - ${cleanDir} - ${recentDate}`
-      : `${item.extension.toUpperCase()} - ${cleanDir}`;
-
-    card.appendChild(coverWrapper);
-    card.appendChild(titleEl);
-    card.appendChild(subEl);
-
-    els.libraryGrid.appendChild(card);
-
-    fetchAndDisplayCover(item.filePath, imgEl);
+    els.libraryGrid.appendChild(createComicCard(item, onItemClick, index));
   });
 }

@@ -18,7 +18,48 @@
   --library-line: rgba(17, 23, 20, 0.12);
   --library-accent: #1f5f50;
   --library-accent-2: #b35c44;
+  --library-grid-mark: rgba(31, 95, 80, 0.045);
+  --library-tab-bg: rgba(238, 242, 234, 0.86);
+  --library-control-bg: #ffffff;
+  --library-control-hover: #f9fbf7;
+  --library-chip-bg: rgba(255, 255, 255, 0.72);
+  --library-chip-empty-bg: rgba(255, 255, 255, 0.45);
+  --library-hover-bg: rgba(255, 255, 255, 0.62);
+  --library-cover-border: rgba(17, 23, 20, 0.1);
+  --library-cover-shadow: 0 14px 28px rgba(28, 39, 34, 0.12);
+  --library-placeholder: rgba(17, 23, 20, 0.22);
+  --library-favorite-bg: rgba(255, 255, 255, 0.82);
+  --library-favorite-muted: rgba(17, 23, 20, 0.56);
+  --library-empty-bg: rgba(255, 255, 255, 0.44);
+  --library-focus: rgba(31, 95, 80, 0.28);
   --library-shadow: 0 18px 46px rgba(22, 34, 29, 0.13);
+}
+
+[data-theme="dark"] {
+  --library-bg: #101312;
+  --library-surface: rgba(21, 27, 25, 0.88);
+  --library-surface-solid: #151b19;
+  --library-panel: #1a211e;
+  --library-text: #edf4ef;
+  --library-muted: #9daaa3;
+  --library-line: rgba(237, 244, 239, 0.14);
+  --library-accent: #7bd7b8;
+  --library-accent-2: #d9967f;
+  --library-grid-mark: rgba(123, 215, 184, 0.055);
+  --library-tab-bg: rgba(9, 13, 12, 0.55);
+  --library-control-bg: #17201d;
+  --library-control-hover: #1d2925;
+  --library-chip-bg: rgba(23, 32, 29, 0.78);
+  --library-chip-empty-bg: rgba(23, 32, 29, 0.46);
+  --library-hover-bg: rgba(237, 244, 239, 0.08);
+  --library-cover-border: rgba(237, 244, 239, 0.12);
+  --library-cover-shadow: 0 16px 32px rgba(0, 0, 0, 0.32);
+  --library-placeholder: rgba(237, 244, 239, 0.2);
+  --library-favorite-bg: rgba(12, 17, 15, 0.78);
+  --library-favorite-muted: rgba(237, 244, 239, 0.58);
+  --library-empty-bg: rgba(21, 27, 25, 0.48);
+  --library-focus: rgba(123, 215, 184, 0.3);
+  --library-shadow: 0 18px 46px rgba(0, 0, 0, 0.32);
 }
 
 * {
@@ -70,8 +111,8 @@ button {
   inset: 0;
   z-index: -1;
   background:
-    linear-gradient(rgba(31, 95, 80, 0.045) 1px, transparent 1px),
-    linear-gradient(90deg, rgba(31, 95, 80, 0.045) 1px, transparent 1px),
+    linear-gradient(var(--library-grid-mark) 1px, transparent 1px),
+    linear-gradient(90deg, var(--library-grid-mark) 1px, transparent 1px),
     var(--library-bg);
   background-size: 34px 34px;
   opacity: 0.82;
@@ -113,7 +154,7 @@ button {
   justify-content: center;
   border-radius: 8px;
   background: var(--library-text);
-  color: #ffffff;
+  color: var(--library-bg);
   font-family: "Fraunces", serif;
   font-size: 18px;
   font-weight: 700;
@@ -131,9 +172,9 @@ button {
   gap: 4px;
   min-width: 0;
   padding: 4px;
-  border: 1px solid rgba(17, 23, 20, 0.08);
+  border: 1px solid var(--library-line);
   border-radius: 8px;
-  background: rgba(238, 242, 234, 0.86);
+  background: var(--library-tab-bg);
 }
 
 .view-tab {
@@ -160,13 +201,13 @@ button {
 
 .view-tab:hover {
   color: var(--library-text);
-  background: rgba(255, 255, 255, 0.62);
+  background: var(--library-hover-bg);
 }
 
 .view-tab.is-active {
   background: var(--library-text);
-  color: #ffffff;
-  box-shadow: 0 8px 20px rgba(17, 23, 20, 0.18);
+  color: var(--library-bg);
+  box-shadow: var(--library-cover-shadow);
 }
 
 .floating-actions {
@@ -183,7 +224,7 @@ button {
   justify-content: center;
   border: 1px solid var(--library-line);
   border-radius: 8px;
-  background: #ffffff;
+  background: var(--library-control-bg);
   color: var(--library-text);
   cursor: pointer;
   transition: transform 160ms ease, border-color 160ms ease, background 160ms ease;
@@ -191,14 +232,14 @@ button {
 
 .icon-action:hover {
   transform: translateY(-1px);
-  border-color: rgba(31, 95, 80, 0.35);
-  background: #f9fbf7;
+  border-color: var(--library-focus);
+  background: var(--library-control-hover);
 }
 
 .icon-action.is-primary {
   border-color: var(--library-text);
   background: var(--library-text);
-  color: #ffffff;
+  color: var(--library-bg);
 }
 
 .library-main {
@@ -264,7 +305,7 @@ button {
   padding: 0 10px;
   border: 1px solid var(--library-line);
   border-radius: 8px;
-  background: rgba(255, 255, 255, 0.72);
+  background: var(--library-chip-bg);
   color: var(--library-text);
   cursor: default;
   font-size: 12px;
@@ -276,7 +317,7 @@ button {
 
 .directory-chip.is-empty {
   color: var(--library-muted);
-  background: rgba(255, 255, 255, 0.45);
+  background: var(--library-chip-empty-bg);
 }
 
 .library-content {
@@ -311,6 +352,71 @@ button {
   gap: 30px 22px;
 }
 
+.folder-stack {
+  display: flex;
+  flex-direction: column;
+  gap: 34px;
+}
+
+.folder-section {
+  padding-top: 24px;
+  border-top: 1px solid var(--library-line);
+  animation: card-in 360ms ease both;
+}
+
+.folder-section:first-child {
+  padding-top: 0;
+  border-top: 0;
+}
+
+.folder-heading {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  margin-bottom: 16px;
+}
+
+.folder-icon {
+  width: 38px;
+  height: 38px;
+  flex: 0 0 auto;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid var(--library-line);
+  border-radius: 8px;
+  background: var(--library-control-bg);
+  color: var(--library-accent);
+  font-size: 22px;
+}
+
+.folder-copy {
+  min-width: 0;
+}
+
+.folder-copy h3 {
+  margin: 0;
+  color: var(--library-text);
+  font-size: 18px;
+  font-weight: 700;
+}
+
+.folder-copy p {
+  margin: 4px 0 0;
+  color: var(--library-muted);
+  font-size: 13px;
+  font-weight: 600;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.folder-comics-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(124px, 1fr));
+  gap: 22px 16px;
+}
+
 .library-card {
   min-width: 0;
   cursor: pointer;
@@ -318,15 +424,28 @@ button {
   animation: card-in 360ms ease both;
 }
 
+.library-card.is-compact .favorite-btn {
+  width: 30px;
+  height: 30px;
+}
+
+.library-card.is-compact .favorite-btn .material-symbols-outlined {
+  font-size: 18px;
+}
+
+.library-card.is-compact .card-title {
+  font-size: 13px;
+}
+
 .library-card:focus-visible .cover-frame {
-  outline: 3px solid rgba(31, 95, 80, 0.28);
+  outline: 3px solid var(--library-focus);
   outline-offset: 3px;
 }
 
 .library-card:hover .cover-frame,
 .library-card:focus-visible .cover-frame {
   transform: translateY(-3px);
-  border-color: rgba(31, 95, 80, 0.28);
+  border-color: var(--library-focus);
 }
 
 .library-card:hover .cover-accent-fill,
@@ -342,16 +461,16 @@ button {
   align-items: center;
   justify-content: center;
   overflow: hidden;
-  border: 1px solid rgba(17, 23, 20, 0.1);
+  border: 1px solid var(--library-cover-border);
   border-radius: 8px;
   background: var(--library-panel);
-  box-shadow: 0 14px 28px rgba(28, 39, 34, 0.12);
+  box-shadow: var(--library-cover-shadow);
   transition: transform 180ms ease, border-color 180ms ease, box-shadow 180ms ease;
 }
 
 .cover-placeholder {
   position: absolute;
-  color: rgba(17, 23, 20, 0.22);
+  color: var(--library-placeholder);
   font-size: 38px;
 }
 
@@ -379,10 +498,10 @@ button {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  border: 1px solid rgba(17, 23, 20, 0.11);
+  border: 1px solid var(--library-cover-border);
   border-radius: 8px;
-  background: rgba(255, 255, 255, 0.82);
-  color: rgba(17, 23, 20, 0.56);
+  background: var(--library-favorite-bg);
+  color: var(--library-favorite-muted);
   cursor: pointer;
   backdrop-filter: blur(10px);
   transition: color 160ms ease, background 160ms ease, transform 160ms ease;
@@ -390,7 +509,7 @@ button {
 
 .favorite-btn:hover {
   transform: translateY(-1px);
-  background: #ffffff;
+  background: var(--library-control-bg);
   color: var(--library-text);
 }
 
@@ -409,7 +528,7 @@ button {
   left: 0;
   z-index: 3;
   height: 3px;
-  background: rgba(17, 23, 20, 0.1);
+  background: var(--library-line);
 }
 
 .cover-accent-fill {
@@ -448,9 +567,9 @@ button {
   justify-content: center;
   flex-direction: column;
   text-align: center;
-  border: 1px dashed rgba(17, 23, 20, 0.18);
+  border: 1px dashed var(--library-line);
   border-radius: 8px;
-  background: rgba(255, 255, 255, 0.44);
+  background: var(--library-empty-bg);
 }
 
 .library-empty.is-visible {
@@ -465,9 +584,9 @@ button {
   justify-content: center;
   margin-bottom: 16px;
   border-radius: 8px;
-  background: #ffffff;
+  background: var(--library-control-bg);
   color: var(--library-accent);
-  box-shadow: 0 10px 24px rgba(28, 39, 34, 0.08);
+  box-shadow: var(--library-cover-shadow);
 }
 
 .empty-icon .material-symbols-outlined {
@@ -569,6 +688,10 @@ button {
     grid-template-columns: repeat(auto-fill, minmax(138px, 1fr));
     gap: 24px 16px;
   }
+
+  .folder-comics-grid {
+    grid-template-columns: repeat(auto-fill, minmax(116px, 1fr));
+  }
 }
 
 @media (max-width: 480px) {
@@ -598,5 +721,13 @@ button {
 
   .intro-copy p {
     font-size: 14px;
+  }
+
+  .folder-heading {
+    gap: 10px;
+  }
+
+  .folder-comics-grid {
+    grid-template-columns: repeat(auto-fill, minmax(104px, 1fr));
   }
 }

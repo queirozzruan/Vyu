@@ -1,10 +1,23 @@
 <!DOCTYPE html>
-<html class="dark" lang="pt-BR">
+<html class="dark" lang="pt-BR" data-theme="dark">
 
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>MHQViewer</title>
+  <script>
+    (() => {
+      try {
+        const savedTheme = window.localStorage.getItem('mhqviewer:theme');
+        const parsedTheme = savedTheme ? JSON.parse(savedTheme) : 'dark';
+        const theme = parsedTheme === 'light' ? 'light' : 'dark';
+        document.documentElement.dataset.theme = theme;
+        document.documentElement.classList.toggle('dark', theme === 'dark');
+      } catch {
+        document.documentElement.dataset.theme = 'dark';
+      }
+    })();
+  </script>
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,600;9..144,700&family=IBM+Plex+Sans:wght@400;500;600;700&display=swap" rel="stylesheet" />
@@ -93,6 +106,9 @@
         </nav>
 
         <div class="floating-actions">
+          <button id="theme-toggle-btn" class="icon-action" type="button" title="Alternar para tema claro" aria-pressed="true">
+            <span class="material-symbols-outlined">dark_mode</span>
+          </button>
           <button id="add-directory-btn" class="icon-action" type="button" title="Adicionar pasta">
             <span class="material-symbols-outlined">create_new_folder</span>
           </button>
@@ -107,7 +123,7 @@
           <p class="intro-kicker">Biblioteca local</p>
           <div class="intro-copy">
             <h1 id="library-view-title">Cole&ccedil;&atilde;o</h1>
-            <p id="library-view-description">Sua biblioteca local, limpa e organizada por pastas monitoradas.</p>
+            <p id="library-view-description">Sua biblioteca local agrupada por pastas, com as HQs e mang&aacute;s equivalentes em cada uma.</p>
           </div>
           <div id="directory-list" class="directory-list" aria-label="Pastas monitoradas"></div>
         </section>
@@ -115,8 +131,8 @@
         <section class="library-content">
           <div class="section-heading">
             <div>
-              <h2 id="library-section-title">Todos os t&iacute;tulos</h2>
-              <p id="library-meta">0 t&iacute;tulos</p>
+              <h2 id="library-section-title">Pastas da cole&ccedil;&atilde;o</h2>
+              <p id="library-meta">0 pastas</p>
             </div>
           </div>
 

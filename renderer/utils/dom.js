@@ -4,6 +4,7 @@ export const els = {
 
   openComicBtn: document.getElementById('open-comic-btn'),
   addDirectoryBtn: document.getElementById('add-directory-btn'),
+  themeToggleBtn: document.getElementById('theme-toggle-btn'),
   openOtherBtn: document.getElementById('open-other-btn'),
   backLibraryBtn: document.getElementById('back-library-btn'),
 
@@ -31,6 +32,20 @@ export const els = {
   libraryGrid: document.getElementById('library-grid'),
   libraryEmpty: document.getElementById('library-empty')
 };
+
+export function applyTheme(themeName) {
+  const activeTheme = themeName === 'light' ? 'light' : 'dark';
+  document.documentElement.dataset.theme = activeTheme;
+  document.documentElement.classList.toggle('dark', activeTheme === 'dark');
+
+  if (!els.themeToggleBtn) return;
+
+  const icon = els.themeToggleBtn.querySelector('.material-symbols-outlined');
+  if (icon) icon.textContent = activeTheme === 'dark' ? 'dark_mode' : 'light_mode';
+
+  els.themeToggleBtn.setAttribute('aria-pressed', String(activeTheme === 'dark'));
+  els.themeToggleBtn.title = activeTheme === 'dark' ? 'Alternar para tema claro' : 'Alternar para tema escuro';
+}
 
 export function switchScreen(screenName) {
   if (screenName === 'library') {

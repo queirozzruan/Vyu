@@ -1,5 +1,5 @@
-import { els, switchScreen } from '../utils/dom.js';
-import { setLibraryView, state } from '../store/state.js';
+import { applyTheme, els, switchScreen } from '../utils/dom.js';
+import { setLibraryView, state, toggleLibraryTheme } from '../store/state.js';
 import { goToPreviousPage, goToNextPage, setZoom, pickAndOpenComic } from '../services/readerService.js';
 import { addDirectoryFlow } from '../services/libraryService.js';
 import { renderLibraryItems } from '../components/libraryRenderer.js';
@@ -41,6 +41,9 @@ export function setupInputHandlers(onComicOpen) {
   // DOM Button Bindings
   els.openComicBtn.addEventListener('click', pickAndOpenComic);
   els.addDirectoryBtn.addEventListener('click', () => addDirectoryFlow(onComicOpen));
+  els.themeToggleBtn?.addEventListener('click', () => {
+    applyTheme(toggleLibraryTheme());
+  });
   els.openOtherBtn.addEventListener('click', pickAndOpenComic);
   els.backLibraryBtn.addEventListener('click', () => {
     renderLibraryItems(onComicOpen);

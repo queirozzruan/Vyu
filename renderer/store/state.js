@@ -14,6 +14,7 @@ export const state = {
   libraryDirectories: [],
   libraryItems: [],
   activeLibraryView: 'collection',
+  activeTheme: 'dark',
   recentItems: [],
   favoriteItems: []
 };
@@ -38,8 +39,8 @@ export const LIBRARY_VIEWS = {
   collection: {
     label: 'Cole\u00e7\u00e3o',
     title: 'Cole\u00e7\u00e3o',
-    sectionTitle: 'Todos os t\u00edtulos',
-    description: 'Sua biblioteca local, limpa e organizada por pastas monitoradas.',
+    sectionTitle: 'Pastas da cole\u00e7\u00e3o',
+    description: 'Sua biblioteca local agrupada por pastas, com as HQs e mang\u00e1s equivalentes em cada uma.',
     emptyTitle: 'Sua biblioteca est\u00e1 vazia',
     emptyText: 'Adicione uma pasta para visualizar capas e arquivos locais.'
   }
@@ -48,8 +49,11 @@ export const LIBRARY_VIEWS = {
 const STORAGE_KEYS = {
   recent: 'mhqviewer:recent-items',
   favorites: 'mhqviewer:favorite-items',
-  view: 'mhqviewer:active-library-view'
+  view: 'mhqviewer:active-library-view',
+  theme: 'mhqviewer:theme'
 };
+
+const LIBRARY_THEMES = ['dark', 'light'];
 
 const MAX_RECENT_ITEMS = 24;
 
@@ -105,7 +109,9 @@ export function normalizeLibraryItem(item = {}) {
 
 export function hydrateLibraryPreferences() {
   const savedView = readStorage(STORAGE_KEYS.view, 'collection');
+  const savedTheme = readStorage(STORAGE_KEYS.theme, 'dark');
   state.activeLibraryView = LIBRARY_VIEWS[savedView] ? savedView : 'collection';
+  state.activeTheme = LIBRARY_THEMES.includes(savedTheme) ? savedTheme : 'dark';
   state.recentItems = readStorage(STORAGE_KEYS.recent, []).map(normalizeLibraryItem);
   state.favoriteItems = readStorage(STORAGE_KEYS.favorites, []).map(normalizeLibraryItem);
 }
@@ -114,6 +120,18 @@ export function setLibraryView(viewName) {
   if (!LIBRARY_VIEWS[viewName]) return;
   state.activeLibraryView = viewName;
   writeStorage(STORAGE_KEYS.view, viewName);
+}
+
+export function setLibraryTheme(themeName) {
+  if (!LIBRARY_THEMES.includes(themeName)) return;
+  state.activeTheme = themeName;
+  writeStorage(STORAGE_KEYS.theme, themeName);
+}
+
+export function toggleLibraryTheme() {
+  const nextTheme = state.activeTheme === 'dark' ? 'light' : 'dark';
+  setLibraryTheme(nextTheme);
+  return nextTheme;
 }
 
 export function isFavorite(filePath) {
@@ -162,6 +180,27 @@ export function getVisibleLibraryItems() {
   if (state.activeLibraryView === 'recent') return state.recentItems;
   if (state.activeLibraryView === 'favorites') return state.favoriteItems;
   return state.libraryItems;
+}
+
+export function getLibraryFolderGroups(items = state.libraryItems) {
+  const groups = new Map();
+
+  items.map(normalizeLibraryItem).forEach((item) => {
+    const directory = item.directory || '';
+    if (!groups.has(directory)) {
+      const normalizedDirectory = normalizePath(directory);
+      groups.set(directory, {
+        id: directory || 'root',
+        directory,
+        name: normalizedDirectory.split('/').filter(Boolean).pop() || 'Arquivos locais',
+        items: []
+      });
+    }
+
+    groups.get(directory).items.push(item);
+  });
+
+  return Array.from(groups.values()).sort((a, b) => a.name.localeCompare(b.name, 'pt-BR'));
 }
 
 hydrateLibraryPreferences();
