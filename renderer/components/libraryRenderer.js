@@ -1,6 +1,10 @@
 import { getVisibleLibraryItems, isFavorite, LIBRARY_VIEWS, state, toggleFavoriteItem } from '../store/state.js';
 import { els } from '../utils/dom.js';
 
+const coverPreviewCache = new Map();
+const PDF_PREVIEW_MAX_WIDTH = 360;
+const PDF_PREVIEW_MAX_HEIGHT = 540;
+
 export function renderDirectoryList() {
   els.directoryList.innerHTML = '';
 
@@ -21,17 +25,90 @@ export function renderDirectoryList() {
   }
 }
 
+function base64ToUint8Array(base64) {
+  const binaryString = window.atob(base64);
+  const bytes = new Uint8Array(binaryString.length);
+
+  for (let index = 0; index < binaryString.length; index += 1) {
+    bytes[index] = binaryString.charCodeAt(index);
+  }
+
+  return bytes;
+}
+
+async function ensurePdfJs() {
+  if (state.pdfjsLib) return state.pdfjsLib;
+
+  const paths = await window.mhq.getPdfJsPaths();
+  const pdfjsLib = await import(paths.moduleUrl);
+  pdfjsLib.GlobalWorkerOptions.workerSrc = paths.workerUrl;
+  state.pdfjsLib = pdfjsLib;
+
+  return pdfjsLib;
+}
+
+async function renderPdfFirstPagePreview(filePath) {
+  const result = await window.mhq.loadComic(filePath);
+  if (!result?.pdfBase64) return null;
+
+  const pdfjsLib = await ensurePdfJs();
+  const pdfData = base64ToUint8Array(result.pdfBase64);
+  const loadingTask = pdfjsLib.getDocument({ data: pdfData });
+  const pdfDocument = await loadingTask.promise;
+
+  try {
+    const page = await pdfDocument.getPage(1);
+    const viewportAt1x = page.getViewport({ scale: 1 });
+    const fitScale = Math.min(
+      PDF_PREVIEW_MAX_WIDTH / viewportAt1x.width,
+      PDF_PREVIEW_MAX_HEIGHT / viewportAt1x.height
+    );
+    const viewport = page.getViewport({ scale: Math.max(fitScale * 1.4, 0.2) });
+    const canvas = document.createElement('canvas');
+    const context = canvas.getContext('2d', { alpha: false });
+
+    canvas.width = Math.floor(viewport.width);
+    canvas.height = Math.floor(viewport.height);
+    context.fillStyle = '#ffffff';
+    context.fillRect(0, 0, canvas.width, canvas.height);
+
+    await page.render({ canvasContext: context, viewport }).promise;
+
+    return canvas.toDataURL('image/jpeg', 0.82);
+  } finally {
+    if (pdfDocument?.destroy) await pdfDocument.destroy();
+  }
+}
+
+async function createCoverPreview(filePath) {
+  const ext = filePath.toLowerCase().split('.').pop();
+
+  if (ext === 'pdf') {
+    return renderPdfFirstPagePreview(filePath);
+  }
+
+  return window.mhq.getComicCover(filePath);
+}
+
+function getCoverPreview(filePath) {
+  if (!coverPreviewCache.has(filePath)) {
+    coverPreviewCache.set(
+      filePath,
+      createCoverPreview(filePath).catch((err) => {
+        coverPreviewCache.delete(filePath);
+        throw err;
+      })
+    );
+  }
+
+  return coverPreviewCache.get(filePath);
+}
+
 export async function fetchAndDisplayCover(filePath, imgEl) {
   try {
-    const ext = filePath.toLowerCase().split('.').pop();
-    if (ext === 'pdf') {
-      imgEl.src = '';
-      return;
-    }
-
-    const base64Cover = await window.mhq.getComicCover(filePath);
-    if (base64Cover) {
-      imgEl.src = base64Cover;
+    const preview = await getCoverPreview(filePath);
+    if (preview && imgEl.isConnected) {
+      imgEl.src = preview;
       imgEl.classList.add('is-loaded');
     }
   } catch (err) {
@@ -142,6 +219,8 @@ export function renderLibraryItems(onItemClick) {
 
     const imgEl = document.createElement('img');
     imgEl.className = 'comic-cover';
+    imgEl.loading = 'lazy';
+    imgEl.alt = `Preview de ${item.title}`;
 
     const favoriteButton = document.createElement('button');
     const favorite = isFavorite(item.filePath);
