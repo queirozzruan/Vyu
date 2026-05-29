@@ -24,26 +24,6 @@ const MAX_ACTIVE_COVER_LOADS = 2;
 let activeCoverLoads = 0;
 let coverObserver = null;
 
-export function renderDirectoryList() {
-  els.directoryList.innerHTML = '';
-
-  if (state.libraryDirectories.length === 0) {
-    const empty = document.createElement('span');
-    empty.className = 'directory-chip is-empty';
-    empty.textContent = 'Nenhuma pasta adicionada';
-    els.directoryList.appendChild(empty);
-    return;
-  }
-
-  for (const dir of state.libraryDirectories) {
-    const chip = document.createElement('span');
-    chip.className = 'directory-chip';
-    chip.title = dir;
-    chip.textContent = dir.split(/[\\/]/).pop();
-    els.directoryList.appendChild(chip);
-  }
-}
-
 function base64ToUint8Array(base64) {
   const binaryString = window.atob(base64);
   const bytes = new Uint8Array(binaryString.length);

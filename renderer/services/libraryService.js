@@ -1,8 +1,7 @@
 import { addLibraryDirectory, persistLibraryDirectories, reconcileLibraryCollections, state } from '../store/state.js';
-import { renderDirectoryList, renderLibraryItems } from '../components/libraryRenderer.js';
+import { renderLibraryItems } from '../components/libraryRenderer.js';
 
 export async function refreshLibrary(onComicOpen) {
-  renderDirectoryList();
   if (state.libraryDirectories.length === 0) {
     state.libraryItems = [];
     renderLibraryItems(onComicOpen);
@@ -19,7 +18,6 @@ export async function refreshLibrary(onComicOpen) {
     console.error(error);
   }
   
-  renderDirectoryList();
   renderLibraryItems(onComicOpen);
 }
 

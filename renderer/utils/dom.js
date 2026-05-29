@@ -35,7 +35,6 @@ export const els = {
   libraryViewDescription: document.getElementById('library-view-description'),
   librarySectionTitle: document.getElementById('library-section-title'),
   libraryMeta: document.getElementById('library-meta'),
-  directoryList: document.getElementById('directory-list'),
   libraryGrid: document.getElementById('library-grid'),
   libraryEmpty: document.getElementById('library-empty')
 };
