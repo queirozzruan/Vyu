@@ -1,5 +1,5 @@
-import { applyTheme, switchScreen } from './utils/dom.js';
-import { state } from './store/state.js';
+import { applyTheme, switchScreen, updateReaderModeControls } from './utils/dom.js';
+import { READER_MODES, state } from './store/state.js';
 import { updateHeader, updateZoomLabel, updateNavButtons } from './components/readerRenderer.js';
 import { loadComicFromPath } from './services/readerService.js';
 import { refreshLibrary } from './services/libraryService.js';
@@ -10,6 +10,7 @@ setupInputHandlers(loadComicFromPath);
 
 // App initialization routine
 applyTheme(state.activeTheme);
+updateReaderModeControls(state.readerMode, READER_MODES);
 switchScreen('library');
 updateHeader();
 updateZoomLabel();

@@ -242,6 +242,118 @@ button {
   color: var(--library-bg);
 }
 
+.settings-panel {
+  position: fixed;
+  top: 94px;
+  right: max(16px, calc((100vw - 1120px) / 2));
+  z-index: 49;
+  width: min(360px, calc(100% - 32px));
+  padding: 16px;
+  border: 1px solid var(--library-line);
+  border-radius: 8px;
+  background: var(--library-surface);
+  color: var(--library-text);
+  box-shadow: var(--library-shadow);
+  backdrop-filter: blur(18px);
+  opacity: 0;
+  pointer-events: none;
+  transform: translateY(-8px);
+  transition: opacity 160ms ease, transform 160ms ease;
+}
+
+.settings-panel.is-open {
+  opacity: 1;
+  pointer-events: auto;
+  transform: translateY(0);
+}
+
+.settings-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 18px;
+}
+
+.settings-header h2,
+.settings-header p,
+.settings-label,
+.settings-description {
+  margin: 0;
+}
+
+.settings-header h2 {
+  color: var(--library-text);
+  font-size: 18px;
+  font-weight: 800;
+}
+
+.settings-header p,
+.settings-description {
+  color: var(--library-muted);
+  font-size: 13px;
+  line-height: 1.5;
+}
+
+.settings-close-btn {
+  width: 34px;
+  height: 34px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid var(--library-line);
+  border-radius: 8px;
+  background: var(--library-control-bg);
+  color: var(--library-text);
+  cursor: pointer;
+}
+
+.settings-label {
+  color: var(--library-text);
+  font-size: 13px;
+  font-weight: 800;
+}
+
+.settings-segmented {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 4px;
+  margin: 10px 0;
+  padding: 4px;
+  border: 1px solid var(--library-line);
+  border-radius: 8px;
+  background: var(--library-tab-bg);
+}
+
+.settings-option {
+  min-height: 42px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  border: 0;
+  border-radius: 6px;
+  background: transparent;
+  color: var(--library-muted);
+  cursor: pointer;
+  font-size: 13px;
+  font-weight: 800;
+}
+
+.settings-option:hover {
+  color: var(--library-text);
+  background: var(--library-hover-bg);
+}
+
+.settings-option.is-active {
+  background: var(--library-text);
+  color: var(--library-bg);
+}
+
+.settings-option .material-symbols-outlined {
+  font-size: 19px;
+}
+
 .library-main {
   height: 100vh;
   overflow-y: auto;
@@ -654,6 +766,27 @@ button {
   background: #ffffff;
   box-shadow: 0 18px 46px rgba(0, 0, 0, 0.58);
   pointer-events: none;
+}
+
+.reader-shell.is-webtoon .page-scroll-content {
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+}
+
+.webtoon-page {
+  width: 100%;
+  display: flex;
+  justify-content: center;
+}
+
+.webtoon-page-media {
+  display: block;
+  width: auto;
+  max-width: none;
+  height: auto;
+  background: #ffffff;
+  box-shadow: 0 10px 28px rgba(0, 0, 0, 0.4);
 }
 
 .reader-loading {

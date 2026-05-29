@@ -4,6 +4,11 @@ export const els = {
 
   openComicBtn: document.getElementById('open-comic-btn'),
   addDirectoryBtn: document.getElementById('add-directory-btn'),
+  settingsBtn: document.getElementById('settings-btn'),
+  settingsPanel: document.getElementById('settings-panel'),
+  settingsCloseBtn: document.getElementById('settings-close-btn'),
+  readerModeOptions: document.getElementById('reader-mode-options'),
+  readerModeDescription: document.getElementById('reader-mode-description'),
   themeToggleBtn: document.getElementById('theme-toggle-btn'),
   openOtherBtn: document.getElementById('open-other-btn'),
   backLibraryBtn: document.getElementById('back-library-btn'),
@@ -17,6 +22,7 @@ export const els = {
   readerPageSlider: document.getElementById('reader-page-slider'),
 
   pageStage: document.getElementById('page-stage'),
+  pageScrollContent: document.getElementById('page-scroll-content'),
   pageImage: document.getElementById('page-image'),
   loadingText: document.getElementById('loading-text'),
   loadingContainer: document.getElementById('loading-container'),
@@ -46,6 +52,28 @@ export function applyTheme(themeName) {
 
   els.themeToggleBtn.setAttribute('aria-pressed', String(activeTheme === 'dark'));
   els.themeToggleBtn.title = activeTheme === 'dark' ? 'Alternar para tema claro' : 'Alternar para tema escuro';
+}
+
+export function setSettingsPanelOpen(open) {
+  if (!els.settingsPanel) return;
+
+  els.settingsPanel.classList.toggle('is-open', open);
+  els.settingsPanel.setAttribute('aria-hidden', String(!open));
+  els.settingsBtn?.setAttribute('aria-expanded', String(open));
+}
+
+export function updateReaderModeControls(modeName, modes) {
+  if (!els.readerModeOptions) return;
+
+  els.readerModeOptions.querySelectorAll('[data-reader-mode]').forEach((button) => {
+    const active = button.dataset.readerMode === modeName;
+    button.classList.toggle('is-active', active);
+    button.setAttribute('aria-checked', String(active));
+  });
+
+  if (els.readerModeDescription && modes[modeName]) {
+    els.readerModeDescription.textContent = modes[modeName].description;
+  }
 }
 
 export function switchScreen(screenName) {

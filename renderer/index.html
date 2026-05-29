@@ -106,6 +106,9 @@
         </nav>
 
         <div class="floating-actions">
+          <button id="settings-btn" class="icon-action" type="button" title="Configura&ccedil;&otilde;es">
+            <span class="material-symbols-outlined">tune</span>
+          </button>
           <button id="theme-toggle-btn" class="icon-action" type="button" title="Alternar para tema claro" aria-pressed="true">
             <span class="material-symbols-outlined">dark_mode</span>
           </button>
@@ -117,6 +120,33 @@
           </button>
         </div>
       </header>
+
+      <aside id="settings-panel" class="settings-panel" aria-hidden="true">
+        <div class="settings-header">
+          <div>
+            <h2>Configura&ccedil;&otilde;es</h2>
+            <p>Prefer&ecirc;ncias de leitura</p>
+          </div>
+          <button id="settings-close-btn" class="settings-close-btn" type="button" title="Fechar configura&ccedil;&otilde;es">
+            <span class="material-symbols-outlined">close</span>
+          </button>
+        </div>
+
+        <div class="settings-group">
+          <p class="settings-label">Modo de leitura</p>
+          <div id="reader-mode-options" class="settings-segmented" role="radiogroup" aria-label="Modo de leitura">
+            <button class="settings-option is-active" type="button" data-reader-mode="paged" role="radio" aria-checked="true">
+              <span class="material-symbols-outlined">crop_portrait</span>
+              <span>P&aacute;gina</span>
+            </button>
+            <button class="settings-option" type="button" data-reader-mode="webtoon" role="radio" aria-checked="false">
+              <span class="material-symbols-outlined">view_agenda</span>
+              <span>Webtoon</span>
+            </button>
+          </div>
+          <p id="reader-mode-description" class="settings-description">Leitura tradicional, uma p&aacute;gina por vez.</p>
+        </div>
+      </aside>
 
       <main class="library-main custom-scrollbar">
         <section class="library-intro">

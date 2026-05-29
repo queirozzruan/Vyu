@@ -1,6 +1,17 @@
-import { rememberRecentItem, state } from '../store/state.js';
+import { getReadingProgress, rememberReadingProgress, rememberRecentItem, state } from '../store/state.js';
 import { els, setLoading, hideLoading, switchScreen } from '../utils/dom.js';
-import { updateFitModeLabel, updateHeader, updateNavButtons, updateZoomLabel, resetView, updateTransform } from '../components/readerRenderer.js';
+import {
+  clearWebtoonPages,
+  createWebtoonPage,
+  scrollToCurrentWebtoonPage,
+  syncReaderModeClass,
+  updateFitModeLabel,
+  updateHeader,
+  updateNavButtons,
+  updateZoomLabel,
+  resetView,
+  updateTransform
+} from '../components/readerRenderer.js';
 
 export function clamp(value, min, max) {
   return Math.min(Math.max(value, min), max);
@@ -30,7 +41,7 @@ export async function waitForImageLoad() {
 
   await new Promise((resolve, reject) => {
     const onLoad = () => { cleanup(); resolve(); };
-    const onError = () => { cleanup(); reject(new Error('Falha ao carregar imagem da pagina.')); };
+    const onError = () => { cleanup(); reject(new Error('Falha ao carregar imagem da p\u00e1gina.')); };
     const cleanup = () => {
       els.pageImage.removeEventListener('load', onLoad);
       els.pageImage.removeEventListener('error', onError);
@@ -63,9 +74,77 @@ export async function renderPdfPage(pageNumber, requestVersion) {
   hideLoading();
 }
 
+async function renderPdfPageToDataUrl(pageNumber, requestVersion) {
+  const page = await state.pdfDocument.getPage(pageNumber);
+  const viewportAt1x = page.getViewport({ scale: 1 });
+  const viewportWidth = Math.max(320, els.pageStage.clientWidth - 160);
+  const fitScale = viewportWidth / viewportAt1x.width;
+  const viewport = page.getViewport({ scale: Math.min(fitScale * 1.5, 2.2) });
+  const canvas = document.createElement('canvas');
+  const context = canvas.getContext('2d', { alpha: false });
+
+  canvas.width = Math.floor(viewport.width);
+  canvas.height = Math.floor(viewport.height);
+  context.fillStyle = '#ffffff';
+  context.fillRect(0, 0, canvas.width, canvas.height);
+
+  await page.render({ canvasContext: context, viewport }).promise;
+
+  if (requestVersion !== state.pageVersion) return null;
+
+  return canvas.toDataURL('image/png');
+}
+
+async function renderWebtoonChapter(requestVersion) {
+  setLoading('Montando cap\u00edtulo...');
+  clearWebtoonPages();
+  els.pageImage.style.display = 'none';
+
+  if (state.kind === 'images') {
+    state.imagePages.forEach((page, index) => {
+      const img = document.createElement('img');
+      img.src = page.src;
+      img.loading = index < 3 || index <= state.currentPageIndex + 1 ? 'eager' : 'lazy';
+      createWebtoonPage(index, img);
+    });
+
+    hideLoading();
+    els.pageImage.style.display = 'none';
+    updateTransform();
+    resetView();
+    scrollToCurrentWebtoonPage();
+    return;
+  }
+
+  if (state.kind === 'pdf') {
+    for (let index = 0; index < state.totalPages; index += 1) {
+      setLoading(`Renderizando p\u00e1gina ${index + 1} de ${state.totalPages}...`);
+      const dataUrl = await renderPdfPageToDataUrl(index + 1, requestVersion);
+      if (!dataUrl || requestVersion !== state.pageVersion) return;
+
+      const img = document.createElement('img');
+      img.src = dataUrl;
+      img.loading = index < 3 || index <= state.currentPageIndex + 1 ? 'eager' : 'lazy';
+      createWebtoonPage(index, img);
+
+      if (index === 0) {
+        hideLoading();
+        els.pageImage.style.display = 'none';
+        updateTransform();
+      }
+    }
+
+    hideLoading();
+    els.pageImage.style.display = 'none';
+    updateTransform();
+    resetView();
+    scrollToCurrentWebtoonPage();
+  }
+}
+
 export async function renderCurrentPage() {
   if (state.totalPages === 0) {
-    setLoading('Nenhuma pagina disponivel.');
+    setLoading('Nenhuma p\u00e1gina dispon\u00edvel.');
     updateHeader();
     updateNavButtons();
     return;
@@ -85,11 +164,19 @@ export async function renderCurrentPage() {
   const requestVersion = state.pageVersion;
 
   try {
-    if (state.kind === 'images') {
-      const page = state.imagePages[state.currentPageIndex];
-      if (!page) throw new Error('Pagina de imagem nao encontrada.');
+    syncReaderModeClass();
 
-      setLoading('Carregando pagina...');
+    let resetAfterRender = true;
+
+    if (state.readerMode === 'webtoon') {
+      await renderWebtoonChapter(requestVersion);
+      resetAfterRender = false;
+    } else if (state.kind === 'images') {
+      clearWebtoonPages();
+      const page = state.imagePages[state.currentPageIndex];
+      if (!page) throw new Error('P\u00e1gina de imagem n\u00e3o encontrada.');
+
+      setLoading('Carregando p\u00e1gina...');
       els.pageImage.src = page.src;
       await waitForImageLoad();
 
@@ -98,12 +185,16 @@ export async function renderCurrentPage() {
       hideLoading();
       preloadAdjacentImage();
     } else if (state.kind === 'pdf') {
+      clearWebtoonPages();
       setLoading('Renderizando PDF...');
       await renderPdfPage(state.currentPageIndex + 1, requestVersion);
     }
-    resetView();
+
+    if (resetAfterRender) {
+      resetView();
+    }
   } catch (error) {
-    setLoading(`Erro ao renderizar pagina: ${error.message}`);
+    setLoading(`Erro ao renderizar p\u00e1gina: ${error.message}`);
   } finally {
     state.rendering = false;
     if (state.pendingRender) {
@@ -130,10 +221,10 @@ export async function loadComicFromPath(filePath) {
   try {
     const result = await window.mhq.loadComic(filePath);
     state.title = result.title;
+    state.currentFilePath = filePath;
     rememberRecentItem({ filePath, title: result.title });
-    state.currentPageIndex = 0;
     state.zoom = 1;
-    state.fitMode = 'height';
+    state.fitMode = state.readerMode === 'webtoon' ? 'width' : 'height';
     state.imagePages = [];
     state.pdfDocument = null;
 
@@ -150,6 +241,10 @@ export async function loadComicFromPath(filePath) {
     } else {
       throw new Error('Tipo de conteudo nao suportado pelo renderer.');
     }
+
+    const savedProgress = getReadingProgress(filePath, state.totalPages);
+    state.currentPageIndex = savedProgress?.pageIndex || 0;
+    rememberReadingProgress({ filePath, pageIndex: state.currentPageIndex, totalPages: state.totalPages, title: result.title });
 
     updateZoomLabel();
     updateFitModeLabel();
@@ -182,6 +277,17 @@ export function goToPage(pageNumber) {
   if (nextIndex === state.currentPageIndex) return;
 
   state.currentPageIndex = nextIndex;
+  rememberReadingProgress();
+  if (state.readerMode === 'webtoon') {
+    const pageEl = document.querySelector(`.webtoon-page[data-page-index="${nextIndex}"]`);
+    if (pageEl) {
+      pageEl.scrollIntoView({ block: 'start' });
+      updateHeader();
+      updateNavButtons();
+      return;
+    }
+  }
+
   renderCurrentPage();
 }
 

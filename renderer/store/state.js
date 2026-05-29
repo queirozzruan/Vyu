@@ -4,6 +4,7 @@ export const state = {
   imagePages: [],
   pdfDocument: null,
   pdfjsLib: null,
+  currentFilePath: '',
   currentPageIndex: 0,
   totalPages: 0,
   rendering: false,
@@ -11,12 +12,14 @@ export const state = {
   pageVersion: 0,
   zoom: 1,
   fitMode: 'height',
+  readerMode: 'paged',
   panX: 0,
   panY: 0,
   libraryDirectories: [],
   libraryItems: [],
   activeLibraryView: 'collection',
   activeTheme: 'dark',
+  readingProgress: {},
   recentItems: [],
   favoriteItems: []
 };
@@ -49,20 +52,36 @@ export const LIBRARY_VIEWS = {
 };
 
 const STORAGE_KEYS = {
+  directories: 'vyu:library-directories',
   recent: 'vyu:recent-items',
   favorites: 'vyu:favorite-items',
   view: 'vyu:active-library-view',
-  theme: 'vyu:theme'
+  theme: 'vyu:theme',
+  readerMode: 'vyu:reader-mode',
+  readingProgress: 'vyu:reading-progress'
 };
 
 const LEGACY_STORAGE_KEYS = {
+  directories: 'mhqviewer:library-directories',
   recent: 'mhqviewer:recent-items',
   favorites: 'mhqviewer:favorite-items',
   view: 'mhqviewer:active-library-view',
-  theme: 'mhqviewer:theme'
+  theme: 'mhqviewer:theme',
+  readerMode: 'mhqviewer:reader-mode',
+  readingProgress: 'mhqviewer:reading-progress'
 };
 
 const LIBRARY_THEMES = ['dark', 'light'];
+export const READER_MODES = {
+  paged: {
+    label: 'P\u00e1gina',
+    description: 'Leitura tradicional, uma p\u00e1gina por vez.'
+  },
+  webtoon: {
+    label: 'Webtoon',
+    description: 'Cap\u00edtulo cont\u00ednuo para leitura por rolagem.'
+  }
+};
 
 const MAX_RECENT_ITEMS = 24;
 
@@ -112,6 +131,48 @@ function getTitleFromPath(filePath = '') {
   return fileName.replace(/\.[^/.]+$/, '');
 }
 
+function normalizeLibraryDirectories(directories = []) {
+  if (!Array.isArray(directories)) return [];
+
+  return directories.reduce((unique, directory) => {
+    if (typeof directory !== 'string') return unique;
+
+    const normalized = directory.trim();
+    if (normalized && !unique.includes(normalized)) {
+      unique.push(normalized);
+    }
+
+    return unique;
+  }, []);
+}
+
+function normalizeReadingProgress(progress = {}) {
+  if (!progress || typeof progress !== 'object' || Array.isArray(progress)) return {};
+
+  return Object.entries(progress).reduce((normalized, [filePath, value]) => {
+    if (!filePath || !value || typeof value !== 'object') return normalized;
+
+    const pageIndex = Number(value.pageIndex);
+    const totalPages = Number(value.totalPages);
+    const updatedAt = Number(value.updatedAt);
+
+    normalized[filePath] = {
+      pageIndex: Number.isFinite(pageIndex) ? Math.max(0, Math.floor(pageIndex)) : 0,
+      totalPages: Number.isFinite(totalPages) ? Math.max(0, Math.floor(totalPages)) : 0,
+      updatedAt: Number.isFinite(updatedAt) ? updatedAt : null,
+      title: value.title || getTitleFromPath(filePath)
+    };
+
+    return normalized;
+  }, {});
+}
+
+function clampPageIndex(pageIndex, totalPages) {
+  const maxIndex = Math.max(0, Number(totalPages || 1) - 1);
+  const normalizedIndex = Number.isFinite(Number(pageIndex)) ? Math.floor(Number(pageIndex)) : 0;
+  return Math.min(Math.max(normalizedIndex, 0), maxIndex);
+}
+
 export function normalizeLibraryItem(item = {}) {
   return {
     filePath: item.filePath || '',
@@ -126,10 +187,23 @@ export function normalizeLibraryItem(item = {}) {
 export function hydrateLibraryPreferences() {
   const savedView = readPreference('view', 'collection');
   const savedTheme = readPreference('theme', 'dark');
+  const savedReaderMode = readPreference('readerMode', 'paged');
   state.activeLibraryView = LIBRARY_VIEWS[savedView] ? savedView : 'collection';
   state.activeTheme = LIBRARY_THEMES.includes(savedTheme) ? savedTheme : 'dark';
+  state.readerMode = READER_MODES[savedReaderMode] ? savedReaderMode : 'paged';
+  state.libraryDirectories = normalizeLibraryDirectories(readPreference('directories', []));
+  state.readingProgress = normalizeReadingProgress(readPreference('readingProgress', {}));
   state.recentItems = readPreference('recent', []).map(normalizeLibraryItem);
   state.favoriteItems = readPreference('favorites', []).map(normalizeLibraryItem);
+}
+
+export function persistLibraryDirectories(directories = state.libraryDirectories) {
+  state.libraryDirectories = normalizeLibraryDirectories(directories);
+  writeStorage(STORAGE_KEYS.directories, state.libraryDirectories);
+}
+
+export function addLibraryDirectory(directoryPath) {
+  persistLibraryDirectories([...state.libraryDirectories, directoryPath]);
 }
 
 export function setLibraryView(viewName) {
@@ -148,6 +222,52 @@ export function toggleLibraryTheme() {
   const nextTheme = state.activeTheme === 'dark' ? 'light' : 'dark';
   setLibraryTheme(nextTheme);
   return nextTheme;
+}
+
+export function setReaderMode(modeName) {
+  if (!READER_MODES[modeName]) return;
+  state.readerMode = modeName;
+  writeStorage(STORAGE_KEYS.readerMode, modeName);
+}
+
+export function getReadingProgress(filePath, totalPages = null) {
+  const progress = state.readingProgress[filePath];
+  if (!progress) return null;
+
+  return {
+    ...progress,
+    pageIndex: totalPages ? clampPageIndex(progress.pageIndex, totalPages) : progress.pageIndex
+  };
+}
+
+export function getReadingProgressPercent(filePath) {
+  const progress = getReadingProgress(filePath);
+  if (!progress || progress.totalPages <= 0) return 0;
+
+  return Math.min(100, Math.max(0, ((progress.pageIndex + 1) / progress.totalPages) * 100));
+}
+
+export function rememberReadingProgress({
+  filePath = state.currentFilePath,
+  pageIndex = state.currentPageIndex,
+  totalPages = state.totalPages,
+  title = state.title
+} = {}) {
+  if (!filePath || !totalPages) return;
+
+  const nextProgress = {
+    pageIndex: clampPageIndex(pageIndex, totalPages),
+    totalPages,
+    updatedAt: Date.now(),
+    title: title || getTitleFromPath(filePath)
+  };
+
+  state.readingProgress = {
+    ...state.readingProgress,
+    [filePath]: nextProgress
+  };
+
+  writeStorage(STORAGE_KEYS.readingProgress, state.readingProgress);
 }
 
 export function isFavorite(filePath) {

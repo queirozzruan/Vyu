@@ -1,4 +1,4 @@
-import { reconcileLibraryCollections, state } from '../store/state.js';
+import { addLibraryDirectory, persistLibraryDirectories, reconcileLibraryCollections, state } from '../store/state.js';
 import { renderDirectoryList, renderLibraryItems } from '../components/libraryRenderer.js';
 
 export async function refreshLibrary(onComicOpen) {
@@ -11,7 +11,7 @@ export async function refreshLibrary(onComicOpen) {
   
   try {
     const scan = await window.mhq.scanLibraryDirectories(state.libraryDirectories);
-    state.libraryDirectories = scan.directories;
+    persistLibraryDirectories(scan.directories);
     state.libraryItems = scan.items;
     reconcileLibraryCollections(state.libraryItems);
   } catch (error) {
@@ -28,8 +28,10 @@ export async function addDirectoryFlow(onComicOpen) {
   if (!selectedDirectory) {
     return;
   }
-  if (!state.libraryDirectories.includes(selectedDirectory)) {
-    state.libraryDirectories.push(selectedDirectory);
+  const previousCount = state.libraryDirectories.length;
+  addLibraryDirectory(selectedDirectory);
+
+  if (state.libraryDirectories.length !== previousCount) {
     await refreshLibrary(onComicOpen);
   }
 }

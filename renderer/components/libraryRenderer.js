@@ -1,4 +1,4 @@
-import { getLibraryFolderGroups, getVisibleLibraryItems, isFavorite, LIBRARY_VIEWS, state, toggleFavoriteItem } from '../store/state.js';
+import { getLibraryFolderGroups, getReadingProgressPercent, getVisibleLibraryItems, isFavorite, LIBRARY_VIEWS, state, toggleFavoriteItem } from '../store/state.js';
 import { els } from '../utils/dom.js';
 
 const coverPreviewCache = new Map();
@@ -233,6 +233,7 @@ function createComicCard(item, onItemClick, index, { compact = false } = {}) {
 
   const progress = document.createElement('div');
   progress.className = 'cover-accent-fill';
+  progress.style.width = `${getReadingProgressPercent(item.filePath)}%`;
 
   favoriteButton.appendChild(favoriteIcon);
   overlay.appendChild(progress);

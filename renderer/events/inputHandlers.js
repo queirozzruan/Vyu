@@ -1,9 +1,9 @@
-import { applyTheme, els, switchScreen } from '../utils/dom.js';
-import { setLibraryView, state, toggleLibraryTheme } from '../store/state.js';
-import { goToPage, goToPreviousPage, goToNextPage, setZoom, pickAndOpenComic, toggleFitMode } from '../services/readerService.js';
+import { applyTheme, els, setSettingsPanelOpen, switchScreen, updateReaderModeControls } from '../utils/dom.js';
+import { READER_MODES, setLibraryView, setReaderMode, state, toggleLibraryTheme } from '../store/state.js';
+import { goToPage, goToPreviousPage, goToNextPage, renderCurrentPage, setZoom, pickAndOpenComic, toggleFitMode } from '../services/readerService.js';
 import { addDirectoryFlow } from '../services/libraryService.js';
 import { renderLibraryItems } from '../components/libraryRenderer.js';
-import { updateTransform } from '../components/readerRenderer.js';
+import { updateTransform, updateWebtoonPageFromScroll } from '../components/readerRenderer.js';
 
 export function setupInputHandlers(onComicOpen) {
   let readerUiTimer = null;
@@ -59,6 +59,7 @@ export function setupInputHandlers(onComicOpen) {
     }
   }, { passive: false });
 
+  els.pageStage.addEventListener('scroll', updateWebtoonPageFromScroll, { passive: true });
   els.readerScreen.addEventListener('mousemove', wakeReaderUi);
   window.addEventListener('resize', () => {
     if (els.readerScreen.classList.contains('active')) updateTransform();
@@ -69,6 +70,24 @@ export function setupInputHandlers(onComicOpen) {
   els.addDirectoryBtn.addEventListener('click', () => addDirectoryFlow(onComicOpen));
   els.themeToggleBtn?.addEventListener('click', () => {
     applyTheme(toggleLibraryTheme());
+  });
+  els.settingsBtn?.addEventListener('click', () => {
+    const open = !els.settingsPanel?.classList.contains('is-open');
+    setSettingsPanelOpen(open);
+  });
+  els.settingsCloseBtn?.addEventListener('click', () => setSettingsPanelOpen(false));
+  els.readerModeOptions?.addEventListener('click', (event) => {
+    const option = event.target.closest('[data-reader-mode]');
+    if (!option) return;
+
+    setReaderMode(option.dataset.readerMode);
+    updateReaderModeControls(state.readerMode, READER_MODES);
+
+    if (els.readerScreen.classList.contains('active') && state.totalPages > 0) {
+      state.zoom = 1;
+      state.fitMode = state.readerMode === 'webtoon' ? 'width' : 'height';
+      renderCurrentPage();
+    }
   });
   els.openOtherBtn.addEventListener('click', pickAndOpenComic);
   els.backLibraryBtn.addEventListener('click', () => {
