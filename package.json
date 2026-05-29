@@ -1,4 +1,4 @@
-﻿{
+{
   "name": "vyu",
   "version": "1.0.0",
   "description": "Vyu - leitor desktop de HQs e Mangás (.pdf, .cbz, .cbr) com Electron",
@@ -6,7 +6,35 @@
   "author": "Ruan Queiroz",
   "license": "MIT",
   "scripts": {
-    "start": "electron ."
+    "start": "electron .",
+    "dist": "electron-builder --win portable",
+    "portable": "electron-builder --win portable",
+    "installer": "electron-builder --win nsis"
+  },
+  "build": {
+    "appId": "com.ruanqueiroz.vyu",
+    "productName": "Vyu",
+    "asar": false,
+    "directories": {
+      "output": "dist"
+    },
+    "files": [
+      "main/**/*",
+      "renderer/**/*",
+      "main.js",
+      "preload.js",
+      "package.json"
+    ],
+    "win": {
+      "target": "portable",
+      "signAndEditExecutable": false
+    },
+    "nsis": {
+      "oneClick": false,
+      "allowToChangeInstallationDirectory": true,
+      "createDesktopShortcut": true,
+      "createStartMenuShortcut": true
+    }
   },
   "dependencies": {
     "adm-zip": "^0.5.16",
@@ -14,6 +42,7 @@
     "pdfjs-dist": "^4.10.38"
   },
   "devDependencies": {
-    "electron": "^35.1.5"
+    "electron": "^35.1.5",
+    "electron-builder": "^26.8.1"
   }
 }
