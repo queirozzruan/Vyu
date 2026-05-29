@@ -311,7 +311,8 @@ function createCoverActionButton({ className, iconName, active, title, onClick }
 
 function createComicCard(item, onItemClick, index, { compact = false } = {}) {
   const card = document.createElement('div');
-  card.className = `library-card${compact ? ' is-compact' : ''}`;
+  const seen = isSeen(item.filePath);
+  card.className = `library-card${compact ? ' is-compact' : ''}${seen ? ' is-seen' : ''}`;
   card.setAttribute('role', 'button');
   card.tabIndex = 0;
   card.style.animationDelay = `${Math.min(index * 0.05, 0.5)}s`;
@@ -336,7 +337,6 @@ function createComicCard(item, onItemClick, index, { compact = false } = {}) {
   imgEl.alt = `Preview de ${item.title}`;
 
   const favorite = isFavorite(item.filePath);
-  const seen = isSeen(item.filePath);
   const actions = document.createElement('div');
   actions.className = 'cover-actions';
 

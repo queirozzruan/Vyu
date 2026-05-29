@@ -628,6 +628,19 @@ button {
   font-size: 13px;
 }
 
+.library-card.is-seen .comic-cover {
+  filter: grayscale(1) saturate(0.08) brightness(0.72);
+}
+
+.library-card.is-seen .cover-frame::after {
+  position: absolute;
+  inset: 0;
+  z-index: 3;
+  content: "";
+  background: rgba(8, 8, 9, 0.18);
+  pointer-events: none;
+}
+
 .library-card:focus-visible .cover-frame {
   outline: 3px solid var(--library-focus);
   outline-offset: 3px;
@@ -683,7 +696,7 @@ button {
   position: absolute;
   top: 8px;
   right: 8px;
-  z-index: 4;
+  z-index: 5;
   display: flex;
   flex-direction: column;
   gap: 6px;
@@ -723,7 +736,7 @@ button {
   right: 0;
   bottom: 0;
   left: 0;
-  z-index: 3;
+  z-index: 4;
   height: 3px;
   background: var(--library-line);
 }
