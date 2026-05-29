@@ -958,9 +958,11 @@ button {
 
 .reader-page-slider {
   --reader-progress: 0%;
+  appearance: none;
+  -webkit-appearance: none;
   flex: 1;
   width: 100%;
-  height: 14px;
+  height: 18px;
   accent-color: #4169e1;
   cursor: pointer;
   background: transparent;
@@ -980,12 +982,14 @@ button {
 }
 
 .reader-page-slider::-webkit-slider-thumb {
+  -webkit-appearance: none;
   appearance: none;
-  width: 12px;
-  height: 12px;
-  margin-top: -5px;
+  width: 0;
+  height: 0;
+  margin-top: 0;
   border: 0;
   background: transparent;
+  box-shadow: none;
 }
 
 .reader-page-slider::-moz-range-track {
@@ -1002,10 +1006,11 @@ button {
 }
 
 .reader-page-slider::-moz-range-thumb {
-  width: 12px;
-  height: 12px;
+  width: 0;
+  height: 0;
   border: 0;
   background: transparent;
+  box-shadow: none;
 }
 
 #reader-screen.is-ui-idle .reader-toolbar {
