@@ -1,4 +1,4 @@
-import { applyTheme, els, setSettingsPanelOpen, switchScreen, updateReaderModeControls } from '../utils/dom.js';
+import { applyTheme, els, setSettingsPanelOpen, setSupportPageOpen, switchScreen, updateReaderModeControls } from '../utils/dom.js';
 import { READER_MODES, setLibraryView, setReaderMode, state, toggleLibraryTheme } from '../store/state.js';
 import { goToPage, goToPreviousPage, goToNextPage, renderCurrentPage, setZoom, pickAndOpenComic, toggleFitMode } from '../services/readerService.js';
 import { addDirectoryFlow } from '../services/libraryService.js';
@@ -18,6 +18,12 @@ export function setupInputHandlers(onComicOpen) {
   };
 
   window.addEventListener('keydown', (event) => {
+    if (els.supportPage?.classList.contains('is-open') && event.key === 'Escape') {
+      event.preventDefault();
+      setSupportPageOpen(false);
+      return;
+    }
+
     if (!els.readerScreen.classList.contains('active')) return;
 
     wakeReaderUi();
@@ -66,6 +72,20 @@ export function setupInputHandlers(onComicOpen) {
   });
 
   // DOM Button Bindings
+  els.supportOpenBtn?.addEventListener('click', () => setSupportPageOpen(true));
+  els.supportCloseBtn?.addEventListener('click', () => setSupportPageOpen(false));
+  els.supportPage?.addEventListener('click', (event) => {
+    if (event.target === els.supportPage) {
+      setSupportPageOpen(false);
+    }
+  });
+  document.addEventListener('click', (event) => {
+    const link = event.target.closest('[data-external-link]');
+    if (!link) return;
+
+    event.preventDefault();
+    window.mhq.openExternal(link.href);
+  });
   els.openComicBtn.addEventListener('click', pickAndOpenComic);
   els.addDirectoryBtn.addEventListener('click', () => addDirectoryFlow(onComicOpen));
   els.themeToggleBtn?.addEventListener('click', () => {

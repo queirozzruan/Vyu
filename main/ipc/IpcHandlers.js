@@ -1,4 +1,4 @@
-const { ipcMain, dialog } = require('electron');
+const { ipcMain, dialog, shell } = require('electron');
 const path = require('path');
 const fs = require('fs/promises');
 const { pathToFileURL } = require('url');
@@ -135,6 +135,15 @@ function registerIpcHandlers() {
     const ext = path.extname(resolvedPath).toLowerCase();
 
     return await extractFastCover(resolvedPath, ext);
+  });
+
+  ipcMain.handle('shell:open-external', async (_event, url) => {
+    if (typeof url !== 'string' || !/^https:\/\//i.test(url)) {
+      return false;
+    }
+
+    await shell.openExternal(url);
+    return true;
   });
 }
 

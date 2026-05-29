@@ -4,6 +4,9 @@ export const els = {
 
   openComicBtn: document.getElementById('open-comic-btn'),
   addDirectoryBtn: document.getElementById('add-directory-btn'),
+  supportOpenBtn: document.getElementById('support-open-btn'),
+  supportPage: document.getElementById('support-page'),
+  supportCloseBtn: document.getElementById('support-close-btn'),
   settingsBtn: document.getElementById('settings-btn'),
   settingsPanel: document.getElementById('settings-panel'),
   settingsCloseBtn: document.getElementById('settings-close-btn'),
@@ -59,6 +62,19 @@ export function setSettingsPanelOpen(open) {
   els.settingsPanel.classList.toggle('is-open', open);
   els.settingsPanel.setAttribute('aria-hidden', String(!open));
   els.settingsBtn?.setAttribute('aria-expanded', String(open));
+}
+
+export function setSupportPageOpen(open) {
+  if (!els.supportPage) return;
+
+  els.supportPage.classList.toggle('is-open', open);
+  els.supportPage.setAttribute('aria-hidden', String(!open));
+
+  if (open) {
+    els.supportCloseBtn?.focus();
+  } else {
+    els.supportOpenBtn?.focus();
+  }
 }
 
 export function updateReaderModeControls(modeName, modes) {

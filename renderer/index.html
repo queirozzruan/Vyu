@@ -85,12 +85,12 @@
       <div class="library-backdrop" aria-hidden="true"></div>
 
       <header class="floating-menu" aria-label="Menu da biblioteca">
-        <div class="brand-mark" aria-label="Vyu">
+        <button id="support-open-btn" class="brand-mark" type="button" title="Apoie o Vyu" aria-label="Apoie o Vyu">
           <span class="brand-symbol" aria-hidden="true">
             <img src="../assets/Vyuicon.png" alt="" />
           </span>
           <span class="brand-name">Vyu</span>
-        </div>
+        </button>
 
         <nav id="library-view-tabs" class="view-tabs" aria-label="Vistas da biblioteca" role="tablist">
           <button class="view-tab" type="button" role="tab" data-library-view="recent" aria-selected="false">
@@ -149,6 +149,36 @@
           <p id="reader-mode-description" class="settings-description">Leitura tradicional, uma p&aacute;gina por vez.</p>
         </div>
       </aside>
+
+      <section id="support-page" class="support-page" aria-hidden="true">
+        <article class="support-card" role="dialog" aria-modal="true" aria-labelledby="support-title">
+          <button id="support-close-btn" class="support-close-btn" type="button" title="Fechar">
+            <span class="material-symbols-outlined">close</span>
+          </button>
+
+          <div class="support-brand">
+            <img src="../assets/Vyuicon.png" alt="" />
+            <span>Vyu</span>
+          </div>
+
+          <p class="support-kicker">Apoie o Vyu</p>
+          <h2 id="support-title">Um leitor feito com carinho.</h2>
+
+          <div class="support-copy">
+            <p>O Vyu é um app criado por <a href="https://github.com/queirozzruan" data-external-link>Ruan Queiroz</a> e feito com muito carinho.</p>
+            <p>O Vyu é um leitor gratuito de HQs e mangás para Windows.</p>
+            <p>Se o app te ajudou de alguma forma e você quiser apoiar o desenvolvimento, pode contribuir com qualquer valor.</p>
+            <p>O apoio é totalmente opcional e ajuda a manter o projeto vivo, melhorar o app e adicionar novas funcionalidades.</p>
+          </div>
+
+          <a class="support-primary-link" href="https://www.buymeacoffee.com/queirozzruan" data-external-link>
+            <span>Apoiar com qualquer valor</span>
+            <span class="material-symbols-outlined">open_in_new</span>
+          </a>
+
+          <p class="support-thanks">Obrigado por usar o Vyu &#10084;&#65039;</p>
+        </article>
+      </section>
 
       <main class="library-main custom-scrollbar">
         <section class="library-intro">
