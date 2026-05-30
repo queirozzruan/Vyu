@@ -1,14 +1,14 @@
-const path = require('path');
+import path from 'node:path';
 
-function isSupportedExtension(ext) {
+export function isSupportedExtension(ext: string): boolean {
   return ['.pdf', '.cbz', '.cbr'].includes(ext.toLowerCase());
 }
 
-function isImageFile(fileName) {
+export function isImageFile(fileName: string): boolean {
   return /\.(png|jpe?g|webp|gif|bmp)$/i.test(fileName);
 }
 
-function getMimeByExt(fileName) {
+export function getMimeByExt(fileName: string): string {
   const ext = path.extname(fileName).toLowerCase();
   if (ext === '.png') return 'image/png';
   if (ext === '.jpg' || ext === '.jpeg') return 'image/jpeg';
@@ -18,7 +18,7 @@ function getMimeByExt(fileName) {
   return 'application/octet-stream';
 }
 
-function sortAlphabetically(items, getKey) {
+export function sortAlphabetically<T>(items: T[], getKey: (item: T) => string): T[] {
   return [...items].sort((a, b) =>
     getKey(a).localeCompare(getKey(b), undefined, {
       numeric: true,
@@ -26,10 +26,3 @@ function sortAlphabetically(items, getKey) {
     })
   );
 }
-
-module.exports = {
-  isSupportedExtension,
-  isImageFile,
-  getMimeByExt,
-  sortAlphabetically
-};

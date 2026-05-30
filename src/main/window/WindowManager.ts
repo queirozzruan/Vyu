@@ -1,7 +1,9 @@
-const { BrowserWindow } = require('electron');
-const path = require('path');
+import { app, BrowserWindow } from 'electron';
+import path from 'node:path';
 
-function createMainWindow(basePath) {
+export function createMainWindow(): BrowserWindow {
+  const appRoot = app.getAppPath();
+
   const mainWindow = new BrowserWindow({
     title: 'Vyu',
     width: 1440,
@@ -11,9 +13,9 @@ function createMainWindow(basePath) {
     show: false,
     backgroundColor: '#0e0e0e',
     autoHideMenuBar: true,
-    icon: path.join(basePath, 'assets', 'Vyuicon.png'),
+    icon: path.join(appRoot, 'assets', 'Vyuicon.png'),
     webPreferences: {
-      preload: path.join(basePath, 'preload.js'),
+      preload: path.join(appRoot, 'out', 'preload', 'index.js'),
       nodeIntegration: false,
       contextIsolation: true,
       spellcheck: false
@@ -24,8 +26,6 @@ function createMainWindow(basePath) {
     mainWindow.show();
   });
 
-  mainWindow.loadFile(path.join(basePath, 'renderer', 'index.html'));
+  mainWindow.loadFile(path.join(appRoot, 'renderer', 'index.html'));
   return mainWindow;
 }
-
-module.exports = { createMainWindow };
