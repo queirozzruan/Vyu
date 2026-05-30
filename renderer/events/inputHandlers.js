@@ -1,6 +1,6 @@
 import { applyTheme, els, setSettingsPanelOpen, setSupportPageOpen, switchScreen, updateReaderModeControls } from '../utils/dom.js';
 import { READER_MODES, setLibraryView, setReaderMode, state, toggleLibraryTheme } from '../store/state.js';
-import { goToPage, goToPreviousPage, goToNextPage, renderCurrentPage, setZoom, pickAndOpenComic, toggleFitMode } from '../services/readerService.js';
+import { closeCurrentComic, goToPage, goToPreviousPage, goToNextPage, renderCurrentPage, setZoom, pickAndOpenComic, toggleFitMode } from '../services/readerService.js';
 import { addDirectoryFlow } from '../services/libraryService.js';
 import { renderLibraryItems } from '../components/libraryRenderer.js';
 import { updateTransform, updateWebtoonPageFromScroll } from '../components/readerRenderer.js';
@@ -113,6 +113,7 @@ export function setupInputHandlers(onComicOpen) {
   els.backLibraryBtn.addEventListener('click', () => {
     renderLibraryItems(onComicOpen);
     switchScreen('library');
+    closeCurrentComic();
   });
   els.prevBtn.addEventListener('click', goToPreviousPage);
   els.nextBtn.addEventListener('click', goToNextPage);

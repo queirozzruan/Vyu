@@ -13,6 +13,9 @@ import {
   updateTransform
 } from '../components/readerRenderer.js';
 
+const MAX_PAGED_IMAGE_CACHE_ITEMS = 10;
+const WEBTOON_PRELOAD_AHEAD = 2;
+
 export function clamp(value, min, max) {
   return Math.min(Math.max(value, min), max);
 }
@@ -27,6 +30,88 @@ export function base64ToUint8Array(base64) {
   return bytes;
 }
 
+function revokeObjectUrl(src) {
+  if (typeof src === 'string' && src.startsWith('blob:')) {
+    URL.revokeObjectURL(src);
+  }
+}
+
+function clearImagePageCache() {
+  state.imagePageCache.forEach(revokeObjectUrl);
+  state.imagePageCache.clear();
+  state.imagePagePromises.clear();
+}
+
+function trimImagePageCache() {
+  if (state.readerMode === 'webtoon') return;
+
+  const protectedIndexes = new Set([
+    state.currentPageIndex - 1,
+    state.currentPageIndex,
+    state.currentPageIndex + 1
+  ]);
+
+  for (const [pageIndex, src] of state.imagePageCache) {
+    if (state.imagePageCache.size <= MAX_PAGED_IMAGE_CACHE_ITEMS) break;
+    if (protectedIndexes.has(pageIndex)) continue;
+
+    revokeObjectUrl(src);
+    state.imagePageCache.delete(pageIndex);
+  }
+}
+
+function normalizeBinaryPageData(data) {
+  if (data instanceof ArrayBuffer || ArrayBuffer.isView(data)) return data;
+  if (Array.isArray(data)) return new Uint8Array(data);
+  return data;
+}
+
+function createPageObjectUrl(payload) {
+  const data = normalizeBinaryPageData(payload?.data);
+  if (!payload?.mime || !data) {
+    throw new Error('Pagina de imagem invalida.');
+  }
+
+  return URL.createObjectURL(new Blob([data], { type: payload.mime }));
+}
+
+async function getImagePageSrc(pageIndex) {
+  const page = state.imagePages[pageIndex];
+  if (!page) throw new Error('Pagina de imagem nao encontrada.');
+  if (page.src) return page.src;
+
+  const cachedSrc = state.imagePageCache.get(pageIndex);
+  if (cachedSrc) {
+    state.imagePageCache.delete(pageIndex);
+    state.imagePageCache.set(pageIndex, cachedSrc);
+    return cachedSrc;
+  }
+
+  const pendingPage = state.imagePagePromises.get(pageIndex);
+  if (pendingPage) return pendingPage;
+
+  const filePath = state.currentFilePath;
+  const pageName = page.name;
+  let pagePromise;
+  pagePromise = window.mhq.getComicPage(filePath, pageName)
+    .then((payload) => {
+      if (filePath !== state.currentFilePath) return null;
+
+      const src = createPageObjectUrl(payload);
+      state.imagePageCache.set(pageIndex, src);
+      trimImagePageCache();
+      return src;
+    })
+    .finally(() => {
+      if (state.imagePagePromises.get(pageIndex) === pagePromise) {
+        state.imagePagePromises.delete(pageIndex);
+      }
+    });
+
+  state.imagePagePromises.set(pageIndex, pagePromise);
+  return pagePromise;
+}
+
 export async function ensurePdfJs() {
   if (state.pdfjsLib) return state.pdfjsLib;
   const paths = await window.mhq.getPdfJsPaths();
@@ -34,6 +119,28 @@ export async function ensurePdfJs() {
   pdfjsLib.GlobalWorkerOptions.workerSrc = paths.workerUrl;
   state.pdfjsLib = pdfjsLib;
   return pdfjsLib;
+}
+
+async function releaseCurrentContent() {
+  state.pageVersion += 1;
+  clearWebtoonPages();
+  clearImagePageCache();
+
+  if (state.pdfDocument?.destroy) {
+    await state.pdfDocument.destroy().catch(() => {});
+  }
+
+  state.pdfDocument = null;
+  state.imagePages = [];
+  state.currentFilePath = '';
+  state.kind = null;
+  state.totalPages = 0;
+}
+
+export async function closeCurrentComic() {
+  await releaseCurrentContent();
+  updateHeader();
+  updateNavButtons();
 }
 
 export async function waitForImageLoad() {
@@ -95,18 +202,123 @@ async function renderPdfPageToDataUrl(pageNumber, requestVersion) {
   return canvas.toDataURL('image/png');
 }
 
+function markWebtoonImageLoaded(img) {
+  const page = img.closest('.webtoon-page');
+  page?.classList.remove('is-loading');
+  page?.classList.add('is-loaded');
+}
+
+async function loadWebtoonImage(img, pageIndex, requestVersion) {
+  if (!img || img.dataset.loadState === 'loaded') return;
+  if (img.vyuLoadPromise) return img.vyuLoadPromise;
+
+  img.dataset.loadState = 'loading';
+  img.vyuLoadPromise = getImagePageSrc(pageIndex)
+    .then((src) => {
+      if (!src || requestVersion !== state.pageVersion || !img.isConnected) return;
+
+      img.addEventListener('load', () => {
+        img.dataset.loadState = 'loaded';
+        markWebtoonImageLoaded(img);
+      }, { once: true });
+      img.src = src;
+    })
+    .catch((error) => {
+      img.dataset.loadState = 'error';
+      console.error('Error loading webtoon page', pageIndex, error);
+    })
+    .finally(() => {
+      img.vyuLoadPromise = null;
+    });
+
+  return img.vyuLoadPromise;
+}
+
+async function loadWebtoonPdfPage(img, pageIndex, requestVersion) {
+  if (!img || img.dataset.loadState === 'loaded') return;
+  if (img.vyuLoadPromise) return img.vyuLoadPromise;
+
+  img.dataset.loadState = 'loading';
+  img.vyuLoadPromise = renderPdfPageToDataUrl(pageIndex + 1, requestVersion)
+    .then((dataUrl) => {
+      if (!dataUrl || requestVersion !== state.pageVersion || !img.isConnected) return;
+
+      img.addEventListener('load', () => {
+        img.dataset.loadState = 'loaded';
+        markWebtoonImageLoaded(img);
+      }, { once: true });
+      img.src = dataUrl;
+    })
+    .catch((error) => {
+      img.dataset.loadState = 'error';
+      console.error('Error rendering webtoon PDF page', pageIndex, error);
+    })
+    .finally(() => {
+      img.vyuLoadPromise = null;
+    });
+
+  return img.vyuLoadPromise;
+}
+
+function setupWebtoonPageObserver(images, requestVersion, loadPage) {
+  if (state.webtoonImageObserver) {
+    state.webtoonImageObserver.disconnect();
+  }
+
+  if (!('IntersectionObserver' in window)) {
+    images.forEach((img, index) => loadPage(img, index, requestVersion));
+    return;
+  }
+
+  const observer = new IntersectionObserver((entries) => {
+    entries.forEach((entry) => {
+      if (!entry.isIntersecting) return;
+
+      const img = entry.target;
+      const pageIndex = Number(img.dataset.pageIndex || 0);
+      observer.unobserve(img);
+      loadPage(img, pageIndex, requestVersion);
+    });
+  }, {
+    root: els.pageStage,
+    rootMargin: '900px 0px'
+  });
+
+  state.webtoonImageObserver = observer;
+  images.forEach((img) => observer.observe(img));
+}
+
+function preloadWebtoonPages(images, requestVersion, loadPage) {
+  const indexes = new Set([0, state.currentPageIndex]);
+
+  for (let offset = 1; offset <= WEBTOON_PRELOAD_AHEAD; offset += 1) {
+    indexes.add(state.currentPageIndex + offset);
+  }
+
+  indexes.forEach((pageIndex) => {
+    if (pageIndex >= 0 && pageIndex < images.length) {
+      loadPage(images[pageIndex], pageIndex, requestVersion);
+    }
+  });
+}
+
 async function renderWebtoonChapter(requestVersion) {
   setLoading('Montando cap\u00edtulo...');
   clearWebtoonPages();
   els.pageImage.style.display = 'none';
 
   if (state.kind === 'images') {
-    state.imagePages.forEach((page, index) => {
+    const images = state.imagePages.map((_page, index) => {
       const img = document.createElement('img');
-      img.src = page.src;
-      img.loading = index < 3 || index <= state.currentPageIndex + 1 ? 'eager' : 'lazy';
-      createWebtoonPage(index, img);
+      img.loading = 'lazy';
+      img.decoding = 'async';
+      createWebtoonPage(index, img).classList.add('is-loading');
+      return img;
     });
+
+    setupWebtoonPageObserver(images, requestVersion, loadWebtoonImage);
+    preloadWebtoonPages(images, requestVersion, loadWebtoonImage);
+    await loadWebtoonImage(images[state.currentPageIndex], state.currentPageIndex, requestVersion);
 
     hideLoading();
     els.pageImage.style.display = 'none';
@@ -117,22 +329,17 @@ async function renderWebtoonChapter(requestVersion) {
   }
 
   if (state.kind === 'pdf') {
-    for (let index = 0; index < state.totalPages; index += 1) {
-      setLoading(`Renderizando p\u00e1gina ${index + 1} de ${state.totalPages}...`);
-      const dataUrl = await renderPdfPageToDataUrl(index + 1, requestVersion);
-      if (!dataUrl || requestVersion !== state.pageVersion) return;
-
+    const images = Array.from({ length: state.totalPages }, (_page, index) => {
       const img = document.createElement('img');
-      img.src = dataUrl;
-      img.loading = index < 3 || index <= state.currentPageIndex + 1 ? 'eager' : 'lazy';
-      createWebtoonPage(index, img);
+      img.loading = 'lazy';
+      img.decoding = 'async';
+      createWebtoonPage(index, img).classList.add('is-loading');
+      return img;
+    });
 
-      if (index === 0) {
-        hideLoading();
-        els.pageImage.style.display = 'none';
-        updateTransform();
-      }
-    }
+    setupWebtoonPageObserver(images, requestVersion, loadWebtoonPdfPage);
+    preloadWebtoonPages(images, requestVersion, loadWebtoonPdfPage);
+    await loadWebtoonPdfPage(images[state.currentPageIndex], state.currentPageIndex, requestVersion);
 
     hideLoading();
     els.pageImage.style.display = 'none';
@@ -177,8 +384,12 @@ export async function renderCurrentPage() {
       if (!page) throw new Error('P\u00e1gina de imagem n\u00e3o encontrada.');
 
       setLoading('Carregando p\u00e1gina...');
-      els.pageImage.src = page.src;
+      const src = await getImagePageSrc(state.currentPageIndex);
+      if (!src || requestVersion !== state.pageVersion) return;
+
+      els.pageImage.src = src;
       await waitForImageLoad();
+      if (requestVersion !== state.pageVersion) return;
 
       state.currentImageNaturalWidth = els.pageImage.naturalWidth;
       state.currentImageNaturalHeight = els.pageImage.naturalHeight;
@@ -207,11 +418,20 @@ export async function renderCurrentPage() {
 export function preloadAdjacentImage() {
   if (state.kind !== 'images') return;
 
-  const nextPage = state.imagePages[state.currentPageIndex + 1] || state.imagePages[state.currentPageIndex - 1];
-  if (!nextPage?.src) return;
+  const nearbyPages = [
+    state.currentPageIndex + 1,
+    state.currentPageIndex - 1
+  ].filter((pageIndex) => pageIndex >= 0 && pageIndex < state.totalPages);
 
-  const image = new Image();
-  image.src = nextPage.src;
+  nearbyPages.forEach((pageIndex) => {
+    getImagePageSrc(pageIndex)
+      .then((src) => {
+        if (!src) return;
+        const image = new Image();
+        image.src = src;
+      })
+      .catch(() => {});
+  });
 }
 
 export async function loadComicFromPath(filePath) {
@@ -219,14 +439,14 @@ export async function loadComicFromPath(filePath) {
   switchScreen('reader');
 
   try {
+    await releaseCurrentContent();
+
     const result = await window.mhq.loadComic(filePath);
     state.title = result.title;
     state.currentFilePath = filePath;
     rememberRecentItem({ filePath, title: result.title });
     state.zoom = 1;
     state.fitMode = state.readerMode === 'webtoon' ? 'width' : 'height';
-    state.imagePages = [];
-    state.pdfDocument = null;
 
     if (result.kind === 'images') {
       state.kind = 'images';

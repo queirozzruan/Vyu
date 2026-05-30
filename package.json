@@ -15,7 +15,17 @@
     "appId": "com.ruanqueiroz.vyu",
     "productName": "Vyu",
     "icon": "assets/Vyuicon.png",
-    "asar": false,
+    "compression": "maximum",
+    "asar": true,
+    "asarUnpack": [
+      "node_modules/pdfjs-dist/legacy/build/pdf.min.mjs",
+      "node_modules/pdfjs-dist/legacy/build/pdf.worker.min.mjs",
+      "node_modules/node-unrar-js/**/*"
+    ],
+    "electronLanguages": [
+      "en-US",
+      "pt-BR"
+    ],
     "directories": {
       "output": "dist"
     },
@@ -25,7 +35,19 @@
       "assets/**/*",
       "main.js",
       "preload.js",
-      "package.json"
+      "package.json",
+      "!**/*.map",
+      "!node_modules/@napi-rs/**",
+      "!node_modules/pdfjs-dist/build/**",
+      "!node_modules/pdfjs-dist/web/**",
+      "!node_modules/pdfjs-dist/legacy/web/**",
+      "!node_modules/pdfjs-dist/legacy/build/pdf.mjs",
+      "!node_modules/pdfjs-dist/legacy/build/pdf.worker.mjs",
+      "!node_modules/pdfjs-dist/legacy/build/pdf.sandbox*.mjs",
+      "!node_modules/pdfjs-dist/types/**",
+      "!node_modules/pdfjs-dist/cmaps/**",
+      "!node_modules/**/{CHANGELOG.md,README.md,README,readme.md,readme}",
+      "!node_modules/**/*.d.ts"
     ],
     "win": {
       "target": "portable",

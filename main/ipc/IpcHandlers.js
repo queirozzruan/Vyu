@@ -1,11 +1,23 @@
 const { ipcMain, dialog, shell } = require('electron');
 const path = require('path');
+const fsSync = require('fs');
 const fs = require('fs/promises');
 const { pathToFileURL } = require('url');
 
 const { walkSupportedFiles } = require('../services/Scanner');
-const { extractCbzPages, extractCbrPages, extractFastCover } = require('../services/Extractors');
+const {
+  extractCbzPage,
+  extractCbzPageList,
+  extractCbrPage,
+  extractCbrPageList,
+  extractFastCover
+} = require('../services/Extractors');
 const { isSupportedExtension, sortAlphabetically } = require('../utils/FileUtils');
+
+function resolveRuntimeFile(filePath) {
+  const unpackedPath = filePath.replace(`${path.sep}app.asar${path.sep}`, `${path.sep}app.asar.unpacked${path.sep}`);
+  return fsSync.existsSync(unpackedPath) ? unpackedPath : filePath;
+}
 
 function registerIpcHandlers() {
   ipcMain.handle('dialog:open-comic-file', async () => {
@@ -79,8 +91,8 @@ function registerIpcHandlers() {
   });
 
   ipcMain.handle('pdfjs:get-paths', async () => {
-    const modulePath = require.resolve('pdfjs-dist/legacy/build/pdf.mjs');
-    const workerPath = require.resolve('pdfjs-dist/legacy/build/pdf.worker.mjs');
+    const modulePath = resolveRuntimeFile(require.resolve('pdfjs-dist/legacy/build/pdf.min.mjs'));
+    const workerPath = resolveRuntimeFile(require.resolve('pdfjs-dist/legacy/build/pdf.worker.min.mjs'));
 
     return {
       moduleUrl: pathToFileURL(modulePath).href,
@@ -111,7 +123,7 @@ function registerIpcHandlers() {
     }
 
     if (ext === '.cbz') {
-      const pages = await extractCbzPages(resolvedPath);
+      const pages = await extractCbzPageList(resolvedPath);
       return {
         kind: 'images',
         title: path.basename(resolvedPath, ext),
@@ -120,13 +132,36 @@ function registerIpcHandlers() {
       };
     }
 
-    const pages = await extractCbrPages(resolvedPath);
+    const pages = await extractCbrPageList(resolvedPath);
     return {
       kind: 'images',
       title: path.basename(resolvedPath, ext),
       fileName: path.basename(resolvedPath),
       pages
     };
+  });
+
+  ipcMain.handle('comic:get-page', async (_event, filePath, pageName) => {
+    if (typeof filePath !== 'string' || !filePath.trim()) {
+      throw new Error('Caminho de arquivo invalido.');
+    }
+
+    if (typeof pageName !== 'string' || !pageName.trim()) {
+      throw new Error('Pagina invalida.');
+    }
+
+    const resolvedPath = path.resolve(filePath);
+    const ext = path.extname(resolvedPath).toLowerCase();
+
+    if (ext === '.cbz') {
+      return extractCbzPage(resolvedPath, pageName);
+    }
+
+    if (ext === '.cbr') {
+      return extractCbrPage(resolvedPath, pageName);
+    }
+
+    throw new Error('Formato sem pagina de imagem sob demanda.');
   });
 
   ipcMain.handle('comic:get-cover', async (_event, filePath) => {

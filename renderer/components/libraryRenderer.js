@@ -20,9 +20,79 @@ const COVER_PREVIEW_MAX_WIDTH = 220;
 const COVER_PREVIEW_MAX_HEIGHT = 330;
 const COVER_PREVIEW_QUALITY = 0.68;
 const MAX_ACTIVE_COVER_LOADS = 2;
+const MAX_COVER_CACHE_ITEMS = 80;
+const COVER_PREVIEW_STORAGE_KEY = 'vyu:cover-preview-cache:v1';
+const MAX_PERSISTED_COVER_ITEMS = 80;
+const MAX_PERSISTED_COVER_BYTES = 160000;
 
 let activeCoverLoads = 0;
 let coverObserver = null;
+let persistedCoverWriteScheduled = false;
+
+function readPersistedCoverCache() {
+  try {
+    const rawCache = window.localStorage.getItem(COVER_PREVIEW_STORAGE_KEY);
+    const entries = rawCache ? JSON.parse(rawCache) : [];
+    if (!Array.isArray(entries)) return new Map();
+
+    return new Map(entries.filter(([filePath, preview]) => (
+      typeof filePath === 'string' &&
+      typeof preview === 'string' &&
+      preview.startsWith('data:image/')
+    )));
+  } catch {
+    return new Map();
+  }
+}
+
+const persistedCoverCache = readPersistedCoverCache();
+
+function trimMap(map, maxSize) {
+  while (map.size > maxSize) {
+    const oldestKey = map.keys().next().value;
+    map.delete(oldestKey);
+  }
+}
+
+function schedulePersistedCoverWrite() {
+  if (persistedCoverWriteScheduled) return;
+
+  persistedCoverWriteScheduled = true;
+  requestCoverIdleCallback(() => {
+    persistedCoverWriteScheduled = false;
+    trimMap(persistedCoverCache, MAX_PERSISTED_COVER_ITEMS);
+
+    try {
+      window.localStorage.setItem(COVER_PREVIEW_STORAGE_KEY, JSON.stringify(Array.from(persistedCoverCache.entries())));
+    } catch {
+      trimMap(persistedCoverCache, Math.floor(MAX_PERSISTED_COVER_ITEMS / 2));
+      try {
+        window.localStorage.setItem(COVER_PREVIEW_STORAGE_KEY, JSON.stringify(Array.from(persistedCoverCache.entries())));
+      } catch {
+        // Ignore cache persistence failures; covers can still be regenerated.
+      }
+    }
+  });
+}
+
+function getPersistedCoverPreview(filePath) {
+  const preview = persistedCoverCache.get(filePath);
+  if (!preview) return null;
+
+  persistedCoverCache.delete(filePath);
+  persistedCoverCache.set(filePath, preview);
+  schedulePersistedCoverWrite();
+  return preview;
+}
+
+function rememberPersistedCoverPreview(filePath, preview) {
+  if (!preview?.startsWith('data:image/') || preview.length > MAX_PERSISTED_COVER_BYTES) return;
+
+  persistedCoverCache.delete(filePath);
+  persistedCoverCache.set(filePath, preview);
+  trimMap(persistedCoverCache, MAX_PERSISTED_COVER_ITEMS);
+  schedulePersistedCoverWrite();
+}
 
 function base64ToUint8Array(base64) {
   const binaryString = window.atob(base64);
@@ -123,17 +193,37 @@ async function createCoverPreview(filePath) {
 }
 
 function getCoverPreview(filePath) {
-  if (!coverPreviewCache.has(filePath)) {
-    coverPreviewCache.set(
-      filePath,
-      createCoverPreview(filePath).catch((err) => {
-        coverPreviewCache.delete(filePath);
-        throw err;
-      })
-    );
+  const cachedPreview = coverPreviewCache.get(filePath);
+  if (cachedPreview) {
+    coverPreviewCache.delete(filePath);
+    coverPreviewCache.set(filePath, cachedPreview);
+    return cachedPreview;
   }
 
-  return coverPreviewCache.get(filePath);
+  const persistedPreview = getPersistedCoverPreview(filePath);
+  if (persistedPreview) {
+    const previewPromise = Promise.resolve(persistedPreview);
+    coverPreviewCache.set(filePath, previewPromise);
+    return previewPromise;
+  }
+
+  while (coverPreviewCache.size >= MAX_COVER_CACHE_ITEMS) {
+    const oldestKey = coverPreviewCache.keys().next().value;
+    coverPreviewCache.delete(oldestKey);
+  }
+
+  const previewPromise = createCoverPreview(filePath)
+    .then((preview) => {
+      rememberPersistedCoverPreview(filePath, preview);
+      return preview;
+    })
+    .catch((err) => {
+      coverPreviewCache.delete(filePath);
+      throw err;
+    });
+
+  coverPreviewCache.set(filePath, previewPromise);
+  return previewPromise;
 }
 
 function requestCoverIdleCallback(callback) {

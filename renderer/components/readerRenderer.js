@@ -1,6 +1,8 @@
 import { rememberReadingProgress, state } from '../store/state.js';
 import { els } from '../utils/dom.js';
 
+let webtoonScrollFrame = 0;
+
 function getReadableStageSize() {
   return {
     width: Math.max(320, (els.pageStage?.clientWidth || window.innerWidth) - 192),
@@ -32,6 +34,11 @@ export function updateTransform() {
 }
 
 export function clearWebtoonPages() {
+  if (state.webtoonImageObserver) {
+    state.webtoonImageObserver.disconnect();
+    state.webtoonImageObserver = null;
+  }
+
   document.querySelectorAll('.webtoon-page').forEach((page) => page.remove());
 }
 
@@ -53,7 +60,7 @@ export function syncReaderModeClass() {
   els.readerScreen.classList.toggle('is-webtoon', state.readerMode === 'webtoon');
 }
 
-export function updateWebtoonPageFromScroll() {
+function syncWebtoonPageFromScroll() {
   if (state.readerMode !== 'webtoon') return;
 
   const pages = Array.from(document.querySelectorAll('.webtoon-page'));
@@ -76,6 +83,15 @@ export function updateWebtoonPageFromScroll() {
     updateHeader();
     updateNavButtons();
   }
+}
+
+export function updateWebtoonPageFromScroll() {
+  if (webtoonScrollFrame) return;
+
+  webtoonScrollFrame = window.requestAnimationFrame(() => {
+    webtoonScrollFrame = 0;
+    syncWebtoonPageFromScroll();
+  });
 }
 
 export function scrollToCurrentWebtoonPage() {

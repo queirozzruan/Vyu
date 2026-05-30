@@ -1020,8 +1020,14 @@ button {
 
 .webtoon-page {
   width: 100%;
+  min-height: 0;
   display: flex;
   justify-content: center;
+}
+
+.webtoon-page.is-loading {
+  min-height: min(74vh, 720px);
+  background: rgba(255, 255, 255, 0.025);
 }
 
 .webtoon-page-media {

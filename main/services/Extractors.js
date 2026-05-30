@@ -6,96 +6,139 @@ const {
   sortAlphabetically
 } = require('../utils/FileUtils');
 
-async function extractCbzPages(filePath) {
+const MAX_CBR_CACHE_ITEMS = 2;
+const cbrArchiveDataCache = new Map();
+
+function toArrayBuffer(buffer) {
+  return buffer.buffer.slice(buffer.byteOffset, buffer.byteOffset + buffer.byteLength);
+}
+
+function createImagePayload(fileName, imageBuffer) {
+  return {
+    name: fileName,
+    mime: getMimeByExt(fileName),
+    data: toArrayBuffer(imageBuffer)
+  };
+}
+
+function getZipImageEntries(filePath) {
   const zip = new AdmZip(filePath);
   const entries = zip.getEntries();
 
-  const imageEntries = sortAlphabetically(
+  return sortAlphabetically(
     entries.filter((entry) => !entry.isDirectory && isImageFile(entry.entryName)),
     (entry) => entry.entryName
   );
+}
 
-  if (imageEntries.length === 0) {
-    throw new Error('Nenhuma imagem encontrada no arquivo CBZ.');
+function pageListFromEntries(entries, getName) {
+  if (entries.length === 0) {
+    throw new Error('Nenhuma imagem encontrada no arquivo.');
   }
 
-  return imageEntries.map((entry) => {
-    const fileName = entry.entryName;
-    const data = entry.getData();
-    const mime = getMimeByExt(fileName);
-    return {
-      name: fileName,
-      src: `data:${mime};base64,${data.toString('base64')}`
-    };
+  return entries.map((entry) => ({ name: getName(entry) }));
+}
+
+function touchCacheEntry(cache, key, value) {
+  cache.delete(key);
+  cache.set(key, value);
+}
+
+async function readCbrArchiveData(filePath) {
+  const stat = await fs.stat(filePath);
+  const cached = cbrArchiveDataCache.get(filePath);
+
+  if (cached && cached.size === stat.size && cached.mtimeMs === stat.mtimeMs) {
+    touchCacheEntry(cbrArchiveDataCache, filePath, cached);
+    return cached.data;
+  }
+
+  const data = await fs.readFile(filePath);
+  touchCacheEntry(cbrArchiveDataCache, filePath, {
+    data,
+    size: stat.size,
+    mtimeMs: stat.mtimeMs
+  });
+
+  while (cbrArchiveDataCache.size > MAX_CBR_CACHE_ITEMS) {
+    cbrArchiveDataCache.delete(cbrArchiveDataCache.keys().next().value);
+  }
+
+  return data;
+}
+
+async function createCbrExtractor(filePath) {
+  const archiveData = await readCbrArchiveData(filePath);
+  const { createExtractorFromData } = require('node-unrar-js');
+
+  return createExtractorFromData({
+    data: new Uint8Array(archiveData.buffer, archiveData.byteOffset, archiveData.byteLength)
   });
 }
 
-async function extractCbrPages(filePath) {
-  const { createExtractorFromData } = require('node-unrar-js');
-  const archiveData = await fs.readFile(filePath);
-
-  const extractor = await createExtractorFromData({
-    data: Uint8Array.from(archiveData)
-  });
-
-  const fileListResult = extractor.getFileList();
+async function getCbrImageHeaders(filePath, extractor = null) {
+  const activeExtractor = extractor || await createCbrExtractor(filePath);
+  const fileListResult = activeExtractor.getFileList();
   if (!fileListResult || !fileListResult.fileHeaders) {
     throw new Error('Falha ao ler lista de arquivos do CBR.');
   }
 
-  const fileHeaders = fileListResult.fileHeaders ?? [];
-  const imageHeaders = sortAlphabetically(
-    fileHeaders.filter((header) => !header.flags?.directory && isImageFile(header.name)),
+  return sortAlphabetically(
+    fileListResult.fileHeaders.filter((header) => !header.flags?.directory && isImageFile(header.name)),
     (header) => header.name
   );
+}
 
-  if (imageHeaders.length === 0) {
-    throw new Error('Nenhuma imagem encontrada no arquivo CBR.');
+async function extractCbzPageList(filePath) {
+  return pageListFromEntries(getZipImageEntries(filePath), (entry) => entry.entryName);
+}
+
+async function extractCbzPage(filePath, pageName) {
+  const imageEntries = getZipImageEntries(filePath);
+  const targetEntry = imageEntries.find((entry) => entry.entryName === pageName);
+
+  if (!targetEntry) {
+    throw new Error('Pagina nao encontrada no arquivo CBZ.');
   }
 
-  const targetFiles = imageHeaders.map((header) => header.name);
-  const extractedResult = extractor.extract({ files: targetFiles });
+  return createImagePayload(targetEntry.entryName, targetEntry.getData());
+}
 
+async function extractCbrPageList(filePath) {
+  const imageHeaders = await getCbrImageHeaders(filePath);
+  return pageListFromEntries(imageHeaders, (header) => header.name);
+}
+
+async function extractCbrPage(filePath, pageName) {
+  const extractor = await createCbrExtractor(filePath);
+  const imageHeaders = await getCbrImageHeaders(filePath, extractor);
+  const targetHeader = imageHeaders.find((header) => header.name === pageName);
+
+  if (!targetHeader) {
+    throw new Error('Pagina nao encontrada no arquivo CBR.');
+  }
+
+  const extractedResult = extractor.extract({ files: [targetHeader.name] });
   if (!extractedResult || !extractedResult.files) {
-    throw new Error('Falha ao extrair imagens do CBR.');
+    throw new Error('Falha ao extrair pagina do CBR.');
   }
 
-  const extractedFiles = extractedResult.files ?? [];
-  const pages = [];
-
-  for (const file of extractedFiles) {
-    const fileName = file.fileHeader?.name ?? '';
-    const extracted = file.extraction ?? file.extract?.[1] ?? null;
-
-    if (!fileName || !extracted || !isImageFile(fileName)) {
-      continue;
+  for (const file of extractedResult.files) {
+    if (file.fileHeader?.name === targetHeader.name) {
+      const extracted = file.extraction ?? file.extract?.[1] ?? null;
+      if (extracted) {
+        return createImagePayload(targetHeader.name, Buffer.from(extracted));
+      }
     }
-
-    const imageBuffer = Buffer.from(extracted);
-    const mime = getMimeByExt(fileName);
-
-    pages.push({
-      name: fileName,
-      src: `data:${mime};base64,${imageBuffer.toString('base64')}`
-    });
   }
 
-  if (pages.length === 0) {
-    throw new Error('As imagens do CBR nao puderam ser extraidas.');
-  }
-
-  return sortAlphabetically(pages, (page) => page.name);
+  throw new Error('A pagina do CBR nao pode ser extraida.');
 }
 
 async function extractFastCover(filePath, ext) {
   try {
     if (ext === '.cbz') {
-      const zip = new AdmZip(filePath);
-      const entries = zip.getEntries();
-      const imageEntries = sortAlphabetically(
-        entries.filter((entry) => !entry.isDirectory && isImageFile(entry.entryName)),
-        (entry) => entry.entryName
-      );
+      const imageEntries = getZipImageEntries(filePath);
       if (imageEntries.length === 0) return null;
       const firstEntry = imageEntries[0];
       const data = firstEntry.getData();
@@ -104,16 +147,8 @@ async function extractFastCover(filePath, ext) {
     }
 
     if (ext === '.cbr') {
-      const { createExtractorFromData } = require('node-unrar-js');
-      const archiveData = await fs.readFile(filePath);
-      const extractor = await createExtractorFromData({ data: Uint8Array.from(archiveData) });
-      const fileListResult = extractor.getFileList();
-      if (!fileListResult || !fileListResult.fileHeaders) return null;
-      
-      const imageHeaders = sortAlphabetically(
-        fileListResult.fileHeaders.filter((header) => !header.flags?.directory && isImageFile(header.name)),
-        (header) => header.name
-      );
+      const extractor = await createCbrExtractor(filePath);
+      const imageHeaders = await getCbrImageHeaders(filePath, extractor);
       if (imageHeaders.length === 0) return null;
       
       const targetFile = imageHeaders[0].name;
@@ -140,7 +175,9 @@ async function extractFastCover(filePath, ext) {
 }
 
 module.exports = {
-  extractCbzPages,
-  extractCbrPages,
+  extractCbzPageList,
+  extractCbrPageList,
+  extractCbzPage,
+  extractCbrPage,
   extractFastCover
 };
