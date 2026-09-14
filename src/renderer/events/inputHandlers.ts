@@ -4,14 +4,26 @@ import { closeCurrentComic, goToPage, goToPreviousPage, goToNextPage, renderCurr
 import { addDirectoryFlow } from '../services/libraryService.js';
 import { renderLibraryItems } from '../components/libraryRenderer.js';
 import { updateTransform, updateWebtoonPageFromScroll } from '../components/readerRenderer.js';
+import type { ComicOpenHandler, LibraryViewName, ReaderModeName } from '../store/types';
 
-export function setupInputHandlers(onComicOpen) {
-  let readerUiTimer = null;
+const READER_MODE_NAMES: ReaderModeName[] = ['paged', 'webtoon'];
+const LIBRARY_VIEW_NAMES: LibraryViewName[] = ['recent', 'favorites', 'collection'];
+
+function isReaderModeName(value: string | undefined): value is ReaderModeName {
+  return READER_MODE_NAMES.includes(value as ReaderModeName);
+}
+
+function isLibraryViewName(value: string | undefined): value is LibraryViewName {
+  return LIBRARY_VIEW_NAMES.includes(value as LibraryViewName);
+}
+
+export function setupInputHandlers(onComicOpen: ComicOpenHandler): void {
+  let readerUiTimer: number | null = null;
   const wakeReaderUi = () => {
     if (!els.readerScreen.classList.contains('active')) return;
 
     els.readerScreen.classList.remove('is-ui-idle');
-    window.clearTimeout(readerUiTimer);
+    if (readerUiTimer !== null) window.clearTimeout(readerUiTimer);
     readerUiTimer = window.setTimeout(() => {
       els.readerScreen.classList.add('is-ui-idle');
     }, 2400);
@@ -80,7 +92,8 @@ export function setupInputHandlers(onComicOpen) {
     }
   });
   document.addEventListener('click', (event) => {
-    const link = event.target.closest('[data-external-link]');
+    const target = event.target instanceof Element ? event.target : null;
+    const link = target?.closest<HTMLAnchorElement>('[data-external-link]');
     if (!link) return;
 
     event.preventDefault();
@@ -97,10 +110,12 @@ export function setupInputHandlers(onComicOpen) {
   });
   els.settingsCloseBtn?.addEventListener('click', () => setSettingsPanelOpen(false));
   els.readerModeOptions?.addEventListener('click', (event) => {
-    const option = event.target.closest('[data-reader-mode]');
-    if (!option) return;
+    const target = event.target instanceof Element ? event.target : null;
+    const option = target?.closest<HTMLElement>('[data-reader-mode]');
+    const modeName = option?.dataset.readerMode;
+    if (!isReaderModeName(modeName)) return;
 
-    setReaderMode(option.dataset.readerMode);
+    setReaderMode(modeName);
     updateReaderModeControls(state.readerMode, READER_MODES);
 
     if (els.readerScreen.classList.contains('active') && state.totalPages > 0) {
@@ -121,14 +136,16 @@ export function setupInputHandlers(onComicOpen) {
   els.zoomOutBtn.addEventListener('click', () => setZoom(state.zoom - 0.2));
   els.fitModeBtn?.addEventListener('click', toggleFitMode);
   els.readerPageSlider?.addEventListener('change', (event) => {
-    goToPage(Number(event.target.value));
+    goToPage(Number(els.readerPageSlider.value));
   });
 
   els.libraryViewTabs?.addEventListener('click', (event) => {
-    const tab = event.target.closest('[data-library-view]');
-    if (!tab) return;
+    const target = event.target instanceof Element ? event.target : null;
+    const tab = target?.closest<HTMLElement>('[data-library-view]');
+    const viewName = tab?.dataset.libraryView;
+    if (!isLibraryViewName(viewName)) return;
 
-    setLibraryView(tab.dataset.libraryView);
+    setLibraryView(viewName);
     renderLibraryItems(onComicOpen);
   });
 }

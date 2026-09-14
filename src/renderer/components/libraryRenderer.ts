@@ -11,9 +11,25 @@ import {
   toggleSeenItem
 } from '../store/state.js';
 import { els } from '../utils/dom.js';
+import type { LibraryItem } from '../../shared/ipc';
+import type { ComicOpenHandler, LibraryFolderGroup } from '../store/types';
+import type { PdfJsModule } from '../types/pdfjs';
 
-const coverPreviewCache = new Map();
-const queuedCoverLoads = [];
+interface CoverLoadTask {
+  filePath: string;
+  imgEl: HTMLImageElement;
+}
+
+interface CoverActionOptions {
+  className: string;
+  iconName: string;
+  active: boolean;
+  title: string;
+  onClick: () => void;
+}
+
+const coverPreviewCache = new Map<string, Promise<string | null>>();
+const queuedCoverLoads: CoverLoadTask[] = [];
 const PDF_PREVIEW_MAX_WIDTH = 220;
 const PDF_PREVIEW_MAX_HEIGHT = 330;
 const COVER_PREVIEW_MAX_WIDTH = 220;
@@ -26,20 +42,22 @@ const MAX_PERSISTED_COVER_ITEMS = 80;
 const MAX_PERSISTED_COVER_BYTES = 160000;
 
 let activeCoverLoads = 0;
-let coverObserver = null;
+let coverObserver: IntersectionObserver | null = null;
 let persistedCoverWriteScheduled = false;
 
-function readPersistedCoverCache() {
+function readPersistedCoverCache(): Map<string, string> {
   try {
     const rawCache = window.localStorage.getItem(COVER_PREVIEW_STORAGE_KEY);
-    const entries = rawCache ? JSON.parse(rawCache) : [];
+    const entries: unknown = rawCache ? JSON.parse(rawCache) : [];
     if (!Array.isArray(entries)) return new Map();
 
-    return new Map(entries.filter(([filePath, preview]) => (
-      typeof filePath === 'string' &&
-      typeof preview === 'string' &&
-      preview.startsWith('data:image/')
-    )));
+    const validEntries = entries.filter((entry): entry is [string, string] => (
+      Array.isArray(entry) &&
+      typeof entry[0] === 'string' &&
+      typeof entry[1] === 'string' &&
+      entry[1].startsWith('data:image/')
+    ));
+    return new Map(validEntries);
   } catch {
     return new Map();
   }
@@ -47,14 +65,15 @@ function readPersistedCoverCache() {
 
 const persistedCoverCache = readPersistedCoverCache();
 
-function trimMap(map, maxSize) {
+function trimMap<K, V>(map: Map<K, V>, maxSize: number): void {
   while (map.size > maxSize) {
     const oldestKey = map.keys().next().value;
+    if (oldestKey === undefined) return;
     map.delete(oldestKey);
   }
 }
 
-function schedulePersistedCoverWrite() {
+function schedulePersistedCoverWrite(): void {
   if (persistedCoverWriteScheduled) return;
 
   persistedCoverWriteScheduled = true;
@@ -75,7 +94,7 @@ function schedulePersistedCoverWrite() {
   });
 }
 
-function getPersistedCoverPreview(filePath) {
+function getPersistedCoverPreview(filePath: string): string | null {
   const preview = persistedCoverCache.get(filePath);
   if (!preview) return null;
 
@@ -85,7 +104,7 @@ function getPersistedCoverPreview(filePath) {
   return preview;
 }
 
-function rememberPersistedCoverPreview(filePath, preview) {
+function rememberPersistedCoverPreview(filePath: string, preview: string | null): void {
   if (!preview?.startsWith('data:image/') || preview.length > MAX_PERSISTED_COVER_BYTES) return;
 
   persistedCoverCache.delete(filePath);
@@ -94,7 +113,7 @@ function rememberPersistedCoverPreview(filePath, preview) {
   schedulePersistedCoverWrite();
 }
 
-function base64ToUint8Array(base64) {
+function base64ToUint8Array(base64: string): Uint8Array {
   const binaryString = window.atob(base64);
   const bytes = new Uint8Array(binaryString.length);
 
@@ -105,20 +124,20 @@ function base64ToUint8Array(base64) {
   return bytes;
 }
 
-async function ensurePdfJs() {
+async function ensurePdfJs(): Promise<PdfJsModule> {
   if (state.pdfjsLib) return state.pdfjsLib;
 
   const paths = await window.mhq.getPdfJsPaths();
-  const pdfjsLib = await import(paths.moduleUrl);
+  const pdfjsLib = await import(paths.moduleUrl) as unknown as PdfJsModule;
   pdfjsLib.GlobalWorkerOptions.workerSrc = paths.workerUrl;
   state.pdfjsLib = pdfjsLib;
 
   return pdfjsLib;
 }
 
-async function renderPdfFirstPagePreview(filePath) {
+async function renderPdfFirstPagePreview(filePath: string): Promise<string | null> {
   const result = await window.mhq.loadComic(filePath);
-  if (!result?.pdfBase64) return null;
+  if (result.kind !== 'pdf' || !result.pdfBase64) return null;
 
   const pdfjsLib = await ensurePdfJs();
   const pdfData = base64ToUint8Array(result.pdfBase64);
@@ -135,6 +154,7 @@ async function renderPdfFirstPagePreview(filePath) {
     const viewport = page.getViewport({ scale: Math.max(fitScale * 1.4, 0.2) });
     const canvas = document.createElement('canvas');
     const context = canvas.getContext('2d', { alpha: false });
+    if (!context) throw new Error('Falha ao preparar preview da capa.');
 
     canvas.width = Math.floor(viewport.width);
     canvas.height = Math.floor(viewport.height);
@@ -149,7 +169,7 @@ async function renderPdfFirstPagePreview(filePath) {
   }
 }
 
-function waitForPreviewImage(src) {
+function waitForPreviewImage(src: string): Promise<HTMLImageElement> {
   return new Promise((resolve, reject) => {
     const image = new Image();
     image.onload = () => resolve(image);
@@ -158,7 +178,7 @@ function waitForPreviewImage(src) {
   });
 }
 
-async function compressCoverPreview(preview) {
+async function compressCoverPreview(preview: string | null): Promise<string | null> {
   if (!preview?.startsWith('data:image/')) return preview;
 
   const image = await waitForPreviewImage(preview);
@@ -173,6 +193,7 @@ async function compressCoverPreview(preview) {
   const height = Math.max(1, Math.round(image.naturalHeight * scale));
   const canvas = document.createElement('canvas');
   const context = canvas.getContext('2d', { alpha: false });
+  if (!context) throw new Error('Falha ao preparar cache da capa.');
 
   canvas.width = width;
   canvas.height = height;
@@ -183,7 +204,7 @@ async function compressCoverPreview(preview) {
   return canvas.toDataURL('image/jpeg', COVER_PREVIEW_QUALITY);
 }
 
-async function createCoverPreview(filePath) {
+async function createCoverPreview(filePath: string): Promise<string | null> {
   const ext = filePath.toLowerCase().split('.').pop();
   const preview = ext === 'pdf'
     ? await renderPdfFirstPagePreview(filePath)
@@ -192,7 +213,7 @@ async function createCoverPreview(filePath) {
   return compressCoverPreview(preview);
 }
 
-function getCoverPreview(filePath) {
+function getCoverPreview(filePath: string): Promise<string | null> {
   const cachedPreview = coverPreviewCache.get(filePath);
   if (cachedPreview) {
     coverPreviewCache.delete(filePath);
@@ -209,6 +230,7 @@ function getCoverPreview(filePath) {
 
   while (coverPreviewCache.size >= MAX_COVER_CACHE_ITEMS) {
     const oldestKey = coverPreviewCache.keys().next().value;
+    if (oldestKey === undefined) break;
     coverPreviewCache.delete(oldestKey);
   }
 
@@ -226,16 +248,16 @@ function getCoverPreview(filePath) {
   return previewPromise;
 }
 
-function requestCoverIdleCallback(callback) {
-  if ('requestIdleCallback' in window) {
+function requestCoverIdleCallback(callback: () => void): void {
+  if (typeof window.requestIdleCallback === 'function') {
     window.requestIdleCallback(callback, { timeout: 700 });
     return;
   }
 
-  window.setTimeout(callback, 16);
+  globalThis.setTimeout(callback, 16);
 }
 
-async function loadAndDisplayCover(filePath, imgEl) {
+async function loadAndDisplayCover(filePath: string, imgEl: HTMLImageElement): Promise<void> {
   if (!filePath || !imgEl.isConnected) return;
 
   try {
@@ -249,9 +271,10 @@ async function loadAndDisplayCover(filePath, imgEl) {
   }
 }
 
-function drainCoverQueue() {
+function drainCoverQueue(): void {
   while (activeCoverLoads < MAX_ACTIVE_COVER_LOADS && queuedCoverLoads.length > 0) {
     const task = queuedCoverLoads.shift();
+    if (!task) return;
 
     if (!task.imgEl.isConnected) {
       continue;
@@ -265,14 +288,14 @@ function drainCoverQueue() {
   }
 }
 
-function enqueueCoverLoad(filePath, imgEl) {
+function enqueueCoverLoad(filePath: string, imgEl: HTMLImageElement): void {
   if (!filePath || !imgEl.isConnected) return;
 
   queuedCoverLoads.push({ filePath, imgEl });
   requestCoverIdleCallback(drainCoverQueue);
 }
 
-function getCoverObserver() {
+function getCoverObserver(): IntersectionObserver | null {
   if (!('IntersectionObserver' in window)) return null;
 
   if (!coverObserver) {
@@ -280,8 +303,8 @@ function getCoverObserver() {
       entries.forEach((entry) => {
         if (!entry.isIntersecting) return;
 
-        const imgEl = entry.target;
-        coverObserver.unobserve(imgEl);
+        const imgEl = entry.target as HTMLImageElement;
+        coverObserver?.unobserve(imgEl);
         enqueueCoverLoad(imgEl.dataset.coverPath || '', imgEl);
       });
     }, {
@@ -293,7 +316,7 @@ function getCoverObserver() {
   return coverObserver;
 }
 
-export function fetchAndDisplayCover(filePath, imgEl) {
+export function fetchAndDisplayCover(filePath: string, imgEl: HTMLImageElement): void {
   imgEl.dataset.coverPath = filePath;
 
   const observer = getCoverObserver();
@@ -305,12 +328,12 @@ export function fetchAndDisplayCover(filePath, imgEl) {
   observer.observe(imgEl);
 }
 
-function formatDirectory(item) {
+function formatDirectory(item: LibraryItem): string {
   if (!item.directory) return 'Arquivo local';
   return item.directory.replace(/\\/g, '/').split('/').pop() || 'Arquivo local';
 }
 
-function formatRecentDate(timestamp) {
+function formatRecentDate(timestamp: number | null | undefined): string | null {
   if (!timestamp) return null;
 
   const date = new Date(timestamp);
@@ -324,19 +347,19 @@ function formatRecentDate(timestamp) {
   return date.toLocaleDateString('pt-BR', { day: '2-digit', month: 'short' });
 }
 
-function pluralizeTitles(count) {
+function pluralizeTitles(count: number): string {
   return `${count} ${count === 1 ? 't\u00edtulo' : 't\u00edtulos'}`;
 }
 
-function pluralizeFolders(count) {
+function pluralizeFolders(count: number): string {
   return `${count} ${count === 1 ? 'pasta' : 'pastas'}`;
 }
 
-function formatFolderPath(directory) {
+function formatFolderPath(directory: string): string {
   return directory || 'Arquivos locais';
 }
 
-function renderLibraryHeader(metaText) {
+function renderLibraryHeader(metaText: string): void {
   const currentView = LIBRARY_VIEWS[state.activeLibraryView];
 
   if (els.libraryViewTitle) els.libraryViewTitle.textContent = currentView.title;
@@ -346,14 +369,14 @@ function renderLibraryHeader(metaText) {
 
   if (!els.libraryViewTabs) return;
 
-  els.libraryViewTabs.querySelectorAll('[data-library-view]').forEach((tab) => {
+  els.libraryViewTabs.querySelectorAll<HTMLElement>('[data-library-view]').forEach((tab) => {
     const isActive = tab.dataset.libraryView === state.activeLibraryView;
     tab.classList.toggle('is-active', isActive);
     tab.setAttribute('aria-selected', String(isActive));
   });
 }
 
-function renderEmptyState() {
+function renderEmptyState(): void {
   const currentView = LIBRARY_VIEWS[state.activeLibraryView];
   els.libraryEmpty.innerHTML = '';
 
@@ -380,7 +403,13 @@ function renderEmptyState() {
   els.libraryEmpty.appendChild(text);
 }
 
-function createCoverActionButton({ className, iconName, active, title, onClick }) {
+function createCoverActionButton({
+  className,
+  iconName,
+  active,
+  title,
+  onClick
+}: CoverActionOptions): HTMLButtonElement {
   const button = document.createElement('button');
   button.className = `cover-action-btn ${className}${active ? ' is-active' : ''}`;
   button.type = 'button';
@@ -399,7 +428,12 @@ function createCoverActionButton({ className, iconName, active, title, onClick }
   return button;
 }
 
-function createComicCard(item, onItemClick, index, { compact = false } = {}) {
+function createComicCard(
+  item: LibraryItem,
+  onItemClick: ComicOpenHandler,
+  index: number,
+  { compact = false }: { compact?: boolean } = {}
+): HTMLDivElement {
   const card = document.createElement('div');
   const seen = isSeen(item.filePath);
   card.className = `library-card${compact ? ' is-compact' : ''}${seen ? ' is-seen' : ''}`;
@@ -492,7 +526,11 @@ function createComicCard(item, onItemClick, index, { compact = false } = {}) {
   return card;
 }
 
-function createFolderCard(group, index, onItemClick) {
+function createFolderCard(
+  group: LibraryFolderGroup,
+  index: number,
+  onItemClick: ComicOpenHandler
+): HTMLButtonElement {
   const card = document.createElement('button');
   card.className = 'folder-card';
   card.type = 'button';
@@ -533,13 +571,13 @@ function createFolderCard(group, index, onItemClick) {
   return card;
 }
 
-function renderFolderCards(groups, onItemClick) {
+function renderFolderCards(groups: LibraryFolderGroup[], onItemClick: ComicOpenHandler): void {
   groups.forEach((group, index) => {
     els.libraryGrid.appendChild(createFolderCard(group, index, onItemClick));
   });
 }
 
-function renderFolderDetail(group, onItemClick) {
+function renderFolderDetail(group: LibraryFolderGroup, onItemClick: ComicOpenHandler): void {
   if (els.libraryViewTitle) els.libraryViewTitle.textContent = group.name;
   if (els.libraryViewDescription) els.libraryViewDescription.textContent = formatFolderPath(group.directory);
   if (els.librarySectionTitle) els.librarySectionTitle.textContent = 'Conteúdo da pasta';
@@ -572,7 +610,7 @@ function renderFolderDetail(group, onItemClick) {
   });
 }
 
-export function renderLibraryItems(onItemClick) {
+export function renderLibraryItems(onItemClick: ComicOpenHandler): void {
   els.libraryGrid.innerHTML = '';
 
   if (state.activeLibraryView === 'collection') {

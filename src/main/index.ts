@@ -1,15 +1,15 @@
-const { app, BrowserWindow } = require('electron');
-const { createMainWindow } = require('./main/window/WindowManager');
-const { registerIpcHandlers } = require('./main/ipc/IpcHandlers');
+import { app, BrowserWindow } from 'electron';
+import { registerIpcHandlers } from './ipc/IpcHandlers';
+import { createMainWindow } from './window/WindowManager';
 
 registerIpcHandlers();
 
 app.whenReady().then(() => {
-  createMainWindow(__dirname);
+  createMainWindow();
 
   app.on('activate', () => {
     if (BrowserWindow.getAllWindows().length === 0) {
-      createMainWindow(__dirname);
+      createMainWindow();
     }
   });
 });

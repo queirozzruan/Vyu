@@ -1,26 +1,30 @@
-const { ipcMain, dialog, shell } = require('electron');
-const path = require('path');
-const fsSync = require('fs');
-const fs = require('fs/promises');
-const { pathToFileURL } = require('url');
+import { dialog, ipcMain, shell } from 'electron';
+import * as fsSync from 'node:fs';
+import fs from 'node:fs/promises';
+import { createRequire } from 'node:module';
+import path from 'node:path';
+import { pathToFileURL } from 'node:url';
+import {
+  IPC_CHANNELS,
+  type ComicLoadResult,
+  type ComicPagePayload,
+  type LibraryItem,
+  type LibraryScanResult,
+  type PdfJsPaths
+} from '../../shared/ipc';
+import { extractCbzPage, extractCbzPageList, extractCbrPage, extractCbrPageList, extractFastCover } from '../services/Extractors';
+import { walkSupportedFiles } from '../services/Scanner';
+import { isSupportedExtension, sortAlphabetically } from '../utils/FileUtils';
 
-const { walkSupportedFiles } = require('../services/Scanner');
-const {
-  extractCbzPage,
-  extractCbzPageList,
-  extractCbrPage,
-  extractCbrPageList,
-  extractFastCover
-} = require('../services/Extractors');
-const { isSupportedExtension, sortAlphabetically } = require('../utils/FileUtils');
+const runtimeRequire = createRequire(__filename);
 
-function resolveRuntimeFile(filePath) {
+function resolveRuntimeFile(filePath: string): string {
   const unpackedPath = filePath.replace(`${path.sep}app.asar${path.sep}`, `${path.sep}app.asar.unpacked${path.sep}`);
   return fsSync.existsSync(unpackedPath) ? unpackedPath : filePath;
 }
 
-function registerIpcHandlers() {
-  ipcMain.handle('dialog:open-comic-file', async () => {
+export function registerIpcHandlers(): void {
+  ipcMain.handle(IPC_CHANNELS.openComicFile, async (): Promise<string | null> => {
     const result = await dialog.showOpenDialog({
       title: 'Abrir HQ / Manga',
       properties: ['openFile'],
@@ -37,7 +41,7 @@ function registerIpcHandlers() {
     return result.filePaths[0];
   });
 
-  ipcMain.handle('dialog:open-comic-directory', async () => {
+  ipcMain.handle(IPC_CHANNELS.openComicDirectory, async (): Promise<string | null> => {
     const result = await dialog.showOpenDialog({
       title: 'Selecionar pasta da biblioteca',
       properties: ['openDirectory']
@@ -50,12 +54,12 @@ function registerIpcHandlers() {
     return result.filePaths[0];
   });
 
-  ipcMain.handle('library:scan-directories', async (_event, directoryPaths) => {
+  ipcMain.handle(IPC_CHANNELS.scanLibraryDirectories, async (_event, directoryPaths: unknown): Promise<LibraryScanResult> => {
     if (!Array.isArray(directoryPaths)) {
       throw new Error('Entrada invalida para scan de biblioteca.');
     }
 
-    const normalizedDirectories = [];
+    const normalizedDirectories: string[] = [];
     for (const dir of directoryPaths) {
       if (typeof dir !== 'string' || !dir.trim()) {
         continue;
@@ -68,12 +72,12 @@ function registerIpcHandlers() {
       }
     }
 
-    const filePaths = [];
+    const filePaths: string[] = [];
     for (const directoryPath of normalizedDirectories) {
       await walkSupportedFiles(directoryPath, filePaths);
     }
 
-    const items = sortAlphabetically(filePaths, (filePath) => filePath).map((filePath) => {
+    const items: LibraryItem[] = sortAlphabetically(filePaths, (filePath) => filePath).map((filePath) => {
       const ext = path.extname(filePath).toLowerCase();
       return {
         filePath,
@@ -90,9 +94,9 @@ function registerIpcHandlers() {
     };
   });
 
-  ipcMain.handle('pdfjs:get-paths', async () => {
-    const modulePath = resolveRuntimeFile(require.resolve('pdfjs-dist/legacy/build/pdf.min.mjs'));
-    const workerPath = resolveRuntimeFile(require.resolve('pdfjs-dist/legacy/build/pdf.worker.min.mjs'));
+  ipcMain.handle(IPC_CHANNELS.getPdfJsPaths, async (): Promise<PdfJsPaths> => {
+    const modulePath = resolveRuntimeFile(runtimeRequire.resolve('pdfjs-dist/legacy/build/pdf.min.mjs'));
+    const workerPath = resolveRuntimeFile(runtimeRequire.resolve('pdfjs-dist/legacy/build/pdf.worker.min.mjs'));
 
     return {
       moduleUrl: pathToFileURL(modulePath).href,
@@ -100,7 +104,7 @@ function registerIpcHandlers() {
     };
   });
 
-  ipcMain.handle('comic:load', async (_event, filePath) => {
+  ipcMain.handle(IPC_CHANNELS.loadComic, async (_event, filePath: unknown): Promise<ComicLoadResult> => {
     if (typeof filePath !== 'string' || !filePath.trim()) {
       throw new Error('Caminho de arquivo invalido.');
     }
@@ -141,7 +145,7 @@ function registerIpcHandlers() {
     };
   });
 
-  ipcMain.handle('comic:get-page', async (_event, filePath, pageName) => {
+  ipcMain.handle(IPC_CHANNELS.getComicPage, async (_event, filePath: unknown, pageName: unknown): Promise<ComicPagePayload> => {
     if (typeof filePath !== 'string' || !filePath.trim()) {
       throw new Error('Caminho de arquivo invalido.');
     }
@@ -164,15 +168,15 @@ function registerIpcHandlers() {
     throw new Error('Formato sem pagina de imagem sob demanda.');
   });
 
-  ipcMain.handle('comic:get-cover', async (_event, filePath) => {
+  ipcMain.handle(IPC_CHANNELS.getComicCover, async (_event, filePath: unknown): Promise<string | null> => {
     if (typeof filePath !== 'string' || !filePath.trim()) return null;
     const resolvedPath = path.resolve(filePath);
     const ext = path.extname(resolvedPath).toLowerCase();
 
-    return await extractFastCover(resolvedPath, ext);
+    return extractFastCover(resolvedPath, ext);
   });
 
-  ipcMain.handle('shell:open-external', async (_event, url) => {
+  ipcMain.handle(IPC_CHANNELS.openExternal, async (_event, url: unknown): Promise<boolean> => {
     if (typeof url !== 'string' || !/^https:\/\//i.test(url)) {
       return false;
     }
@@ -181,5 +185,3 @@ function registerIpcHandlers() {
     return true;
   });
 }
-
-module.exports = { registerIpcHandlers };

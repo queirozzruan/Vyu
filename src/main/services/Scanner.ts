@@ -1,8 +1,8 @@
-const fs = require('fs/promises');
-const path = require('path');
-const { isSupportedExtension } = require('../utils/FileUtils');
+import fs from 'node:fs/promises';
+import path from 'node:path';
+import { isSupportedExtension } from '../utils/FileUtils';
 
-async function walkSupportedFiles(directoryPath, collector) {
+export async function walkSupportedFiles(directoryPath: string, collector: string[]): Promise<void> {
   const entries = await fs.readdir(directoryPath, { withFileTypes: true });
 
   for (const entry of entries) {
@@ -27,5 +27,3 @@ async function walkSupportedFiles(directoryPath, collector) {
     }
   }
 }
-
-module.exports = { walkSupportedFiles };

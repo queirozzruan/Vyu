@@ -1,4 +1,15 @@
-export const state = {
+import type { LibraryItem } from '../../shared/ipc';
+import { readPreference, writePreference } from './preferencesRepository';
+import type {
+  AppState,
+  LibraryFolderGroup,
+  LibraryTheme,
+  LibraryViewName,
+  ReaderModeName,
+  ReadingProgress
+} from './types';
+
+export const state: AppState = {
   title: '',
   kind: null,
   imagePages: [],
@@ -18,6 +29,8 @@ export const state = {
   readerMode: 'paged',
   panX: 0,
   panY: 0,
+  currentImageNaturalWidth: 0,
+  currentImageNaturalHeight: 0,
   libraryDirectories: [],
   libraryItems: [],
   activeLibraryView: 'collection',
@@ -54,31 +67,9 @@ export const LIBRARY_VIEWS = {
     emptyTitle: 'Sua biblioteca est\u00e1 vazia',
     emptyText: 'Adicione uma pasta para visualizar capas e arquivos locais.'
   }
-};
+} as const;
 
-const STORAGE_KEYS = {
-  directories: 'vyu:library-directories',
-  recent: 'vyu:recent-items',
-  favorites: 'vyu:favorite-items',
-  seen: 'vyu:seen-items',
-  view: 'vyu:active-library-view',
-  theme: 'vyu:theme',
-  readerMode: 'vyu:reader-mode',
-  readingProgress: 'vyu:reading-progress'
-};
-
-const LEGACY_STORAGE_KEYS = {
-  directories: 'mhqviewer:library-directories',
-  recent: 'mhqviewer:recent-items',
-  favorites: 'mhqviewer:favorite-items',
-  seen: 'mhqviewer:seen-items',
-  view: 'mhqviewer:active-library-view',
-  theme: 'mhqviewer:theme',
-  readerMode: 'mhqviewer:reader-mode',
-  readingProgress: 'mhqviewer:reading-progress'
-};
-
-const LIBRARY_THEMES = ['dark', 'light'];
+const LIBRARY_THEMES: LibraryTheme[] = ['dark', 'light'];
 export const READER_MODES = {
   paged: {
     label: 'P\u00e1gina',
@@ -88,60 +79,36 @@ export const READER_MODES = {
     label: 'Webtoon',
     description: 'Cap\u00edtulo cont\u00ednuo para leitura por rolagem.'
   }
-};
+} as const;
 
 const MAX_RECENT_ITEMS = 24;
 
-function readStorage(key, fallback) {
-  try {
-    const value = window.localStorage.getItem(key);
-    return value ? JSON.parse(value) : fallback;
-  } catch {
-    return fallback;
-  }
-}
-
-function readPreference(name, fallback) {
-  const value = readStorage(STORAGE_KEYS[name], null);
-  if (value !== null) return value;
-
-  return readStorage(LEGACY_STORAGE_KEYS[name], fallback);
-}
-
-function writeStorage(key, value) {
-  try {
-    window.localStorage.setItem(key, JSON.stringify(value));
-  } catch {
-    // localStorage can be unavailable in constrained environments.
-  }
-}
-
-function normalizePath(filePath = '') {
+function normalizePath(filePath = ''): string {
   return filePath.replace(/\\/g, '/');
 }
 
-function getDirectoryFromPath(filePath = '') {
+function getDirectoryFromPath(filePath = ''): string {
   const normalized = normalizePath(filePath);
   const parts = normalized.split('/');
   parts.pop();
   return parts.join('/') || '';
 }
 
-function getExtensionFromPath(filePath = '') {
+function getExtensionFromPath(filePath = ''): string {
   const fileName = normalizePath(filePath).split('/').pop() || '';
   const pieces = fileName.split('.');
-  return pieces.length > 1 ? pieces.pop().toLowerCase() : '';
+  return pieces.length > 1 ? pieces.pop()?.toLowerCase() ?? '' : '';
 }
 
-function getTitleFromPath(filePath = '') {
+function getTitleFromPath(filePath = ''): string {
   const fileName = normalizePath(filePath).split('/').pop() || 'Sem titulo';
   return fileName.replace(/\.[^/.]+$/, '');
 }
 
-function normalizeLibraryDirectories(directories = []) {
+function normalizeLibraryDirectories(directories: unknown): string[] {
   if (!Array.isArray(directories)) return [];
 
-  return directories.reduce((unique, directory) => {
+  return directories.reduce<string[]>((unique, directory: unknown) => {
     if (typeof directory !== 'string') return unique;
 
     const normalized = directory.trim();
@@ -153,34 +120,38 @@ function normalizeLibraryDirectories(directories = []) {
   }, []);
 }
 
-function normalizeReadingProgress(progress = {}) {
+function normalizeReadingProgress(progress: unknown): Record<string, ReadingProgress> {
   if (!progress || typeof progress !== 'object' || Array.isArray(progress)) return {};
 
-  return Object.entries(progress).reduce((normalized, [filePath, value]) => {
+  return Object.entries(progress).reduce<Record<string, ReadingProgress>>((normalized, [filePath, value]) => {
     if (!filePath || !value || typeof value !== 'object') return normalized;
 
-    const pageIndex = Number(value.pageIndex);
-    const totalPages = Number(value.totalPages);
-    const updatedAt = Number(value.updatedAt);
+    const stored = value as Record<string, unknown>;
+
+    const pageIndex = Number(stored.pageIndex);
+    const totalPages = Number(stored.totalPages);
+    const updatedAt = Number(stored.updatedAt);
 
     normalized[filePath] = {
       pageIndex: Number.isFinite(pageIndex) ? Math.max(0, Math.floor(pageIndex)) : 0,
       totalPages: Number.isFinite(totalPages) ? Math.max(0, Math.floor(totalPages)) : 0,
       updatedAt: Number.isFinite(updatedAt) ? updatedAt : null,
-      title: value.title || getTitleFromPath(filePath)
+      title: typeof stored.title === 'string' && stored.title
+        ? stored.title
+        : getTitleFromPath(filePath)
     };
 
     return normalized;
   }, {});
 }
 
-function clampPageIndex(pageIndex, totalPages) {
+function clampPageIndex(pageIndex: number, totalPages: number): number {
   const maxIndex = Math.max(0, Number(totalPages || 1) - 1);
   const normalizedIndex = Number.isFinite(Number(pageIndex)) ? Math.floor(Number(pageIndex)) : 0;
   return Math.min(Math.max(normalizedIndex, 0), maxIndex);
 }
 
-export function normalizeLibraryItem(item = {}) {
+export function normalizeLibraryItem(item: Partial<LibraryItem> = {}): LibraryItem {
   return {
     filePath: item.filePath || '',
     title: item.title || getTitleFromPath(item.filePath),
@@ -192,61 +163,61 @@ export function normalizeLibraryItem(item = {}) {
   };
 }
 
-export function hydrateLibraryPreferences() {
+export function hydrateLibraryPreferences(): void {
   const savedView = readPreference('view', 'collection');
   const savedTheme = readPreference('theme', 'dark');
   const savedReaderMode = readPreference('readerMode', 'paged');
-  state.activeLibraryView = LIBRARY_VIEWS[savedView] ? savedView : 'collection';
+  state.activeLibraryView = savedView in LIBRARY_VIEWS ? savedView : 'collection';
   state.activeTheme = LIBRARY_THEMES.includes(savedTheme) ? savedTheme : 'dark';
-  state.readerMode = READER_MODES[savedReaderMode] ? savedReaderMode : 'paged';
-  state.libraryDirectories = normalizeLibraryDirectories(readPreference('directories', []));
-  state.readingProgress = normalizeReadingProgress(readPreference('readingProgress', {}));
-  state.recentItems = readPreference('recent', []).map(normalizeLibraryItem);
-  state.favoriteItems = readPreference('favorites', []).map(normalizeLibraryItem);
-  state.seenItems = readPreference('seen', []).map(normalizeLibraryItem);
+  state.readerMode = savedReaderMode in READER_MODES ? savedReaderMode : 'paged';
+  state.libraryDirectories = normalizeLibraryDirectories(readPreference('directories', [] as string[]));
+  state.readingProgress = normalizeReadingProgress(
+    readPreference('readingProgress', {} as Record<string, ReadingProgress>)
+  );
+  state.recentItems = readPreference('recent', [] as LibraryItem[]).map(normalizeLibraryItem);
+  state.favoriteItems = readPreference('favorites', [] as LibraryItem[]).map(normalizeLibraryItem);
+  state.seenItems = readPreference('seen', [] as LibraryItem[]).map(normalizeLibraryItem);
 }
 
-export function persistLibraryDirectories(directories = state.libraryDirectories) {
+export function persistLibraryDirectories(directories: string[] = state.libraryDirectories): void {
   state.libraryDirectories = normalizeLibraryDirectories(directories);
-  writeStorage(STORAGE_KEYS.directories, state.libraryDirectories);
+  writePreference('directories', state.libraryDirectories);
 }
 
-export function addLibraryDirectory(directoryPath) {
+export function addLibraryDirectory(directoryPath: string): void {
   persistLibraryDirectories([...state.libraryDirectories, directoryPath]);
 }
 
-export function setLibraryView(viewName) {
-  if (!LIBRARY_VIEWS[viewName]) return;
+export function setLibraryView(viewName: LibraryViewName): void {
   state.activeLibraryView = viewName;
   if (viewName !== 'collection') {
     state.activeCollectionDirectory = '';
   }
-  writeStorage(STORAGE_KEYS.view, viewName);
+  writePreference('view', viewName);
 }
 
-export function setActiveCollectionDirectory(directory) {
+export function setActiveCollectionDirectory(directory: string): void {
   state.activeCollectionDirectory = directory || '';
 }
 
-export function setLibraryTheme(themeName) {
+export function setLibraryTheme(themeName: LibraryTheme): void {
   if (!LIBRARY_THEMES.includes(themeName)) return;
   state.activeTheme = themeName;
-  writeStorage(STORAGE_KEYS.theme, themeName);
+  writePreference('theme', themeName);
 }
 
-export function toggleLibraryTheme() {
+export function toggleLibraryTheme(): LibraryTheme {
   const nextTheme = state.activeTheme === 'dark' ? 'light' : 'dark';
   setLibraryTheme(nextTheme);
   return nextTheme;
 }
 
-export function setReaderMode(modeName) {
-  if (!READER_MODES[modeName]) return;
+export function setReaderMode(modeName: ReaderModeName): void {
   state.readerMode = modeName;
-  writeStorage(STORAGE_KEYS.readerMode, modeName);
+  writePreference('readerMode', modeName);
 }
 
-export function getReadingProgress(filePath, totalPages = null) {
+export function getReadingProgress(filePath: string, totalPages: number | null = null): ReadingProgress | null {
   const progress = state.readingProgress[filePath];
   if (!progress) return null;
 
@@ -256,7 +227,7 @@ export function getReadingProgress(filePath, totalPages = null) {
   };
 }
 
-export function getReadingProgressPercent(filePath) {
+export function getReadingProgressPercent(filePath: string): number {
   if (isSeen(filePath)) return 100;
 
   const progress = getReadingProgress(filePath);
@@ -270,7 +241,7 @@ export function rememberReadingProgress({
   pageIndex = state.currentPageIndex,
   totalPages = state.totalPages,
   title = state.title
-} = {}) {
+}: Partial<Pick<ReadingProgress, 'pageIndex' | 'totalPages' | 'title'>> & { filePath?: string } = {}): void {
   if (!filePath || !totalPages) return;
 
   const nextProgress = {
@@ -285,18 +256,18 @@ export function rememberReadingProgress({
     [filePath]: nextProgress
   };
 
-  writeStorage(STORAGE_KEYS.readingProgress, state.readingProgress);
+  writePreference('readingProgress', state.readingProgress);
 }
 
-export function isFavorite(filePath) {
+export function isFavorite(filePath: string): boolean {
   return state.favoriteItems.some((item) => item.filePath === filePath);
 }
 
-export function isSeen(filePath) {
+export function isSeen(filePath: string): boolean {
   return state.seenItems.some((item) => item.filePath === filePath);
 }
 
-export function toggleFavoriteItem(item) {
+export function toggleFavoriteItem(item: Partial<LibraryItem>): void {
   const normalized = normalizeLibraryItem(item);
   const existingIndex = state.favoriteItems.findIndex((favorite) => favorite.filePath === normalized.filePath);
 
@@ -306,10 +277,10 @@ export function toggleFavoriteItem(item) {
     state.favoriteItems.unshift({ ...normalized, favoritedAt: Date.now() });
   }
 
-  writeStorage(STORAGE_KEYS.favorites, state.favoriteItems);
+  writePreference('favorites', state.favoriteItems);
 }
 
-export function toggleSeenItem(item) {
+export function toggleSeenItem(item: Partial<LibraryItem>): void {
   const normalized = normalizeLibraryItem(item);
   const existingIndex = state.seenItems.findIndex((seen) => seen.filePath === normalized.filePath);
 
@@ -319,19 +290,21 @@ export function toggleSeenItem(item) {
     state.seenItems.unshift({ ...normalized, seenAt: Date.now() });
   }
 
-  writeStorage(STORAGE_KEYS.seen, state.seenItems);
+  writePreference('seen', state.seenItems);
 }
 
-export function rememberRecentItem(item) {
+export function rememberRecentItem(item: Partial<LibraryItem>): void {
   const normalized = normalizeLibraryItem(item);
   const nextRecentItems = state.recentItems.filter((recent) => recent.filePath !== normalized.filePath);
   nextRecentItems.unshift({ ...normalized, lastOpenedAt: Date.now() });
   state.recentItems = nextRecentItems.slice(0, MAX_RECENT_ITEMS);
-  writeStorage(STORAGE_KEYS.recent, state.recentItems);
+  writePreference('recent', state.recentItems);
 }
 
-export function reconcileLibraryCollections(items) {
-  const byPath = new Map(items.map((item) => [item.filePath, normalizeLibraryItem(item)]));
+export function reconcileLibraryCollections(items: LibraryItem[]): void {
+  const byPath = new Map<string, LibraryItem>(
+    items.map((item) => [item.filePath, normalizeLibraryItem(item)])
+  );
 
   state.recentItems = state.recentItems.map((item) => {
     const current = byPath.get(item.filePath);
@@ -348,19 +321,19 @@ export function reconcileLibraryCollections(items) {
     return current ? { ...current, lastOpenedAt: item.lastOpenedAt, seenAt: item.seenAt } : item;
   });
 
-  writeStorage(STORAGE_KEYS.recent, state.recentItems);
-  writeStorage(STORAGE_KEYS.favorites, state.favoriteItems);
-  writeStorage(STORAGE_KEYS.seen, state.seenItems);
+  writePreference('recent', state.recentItems);
+  writePreference('favorites', state.favoriteItems);
+  writePreference('seen', state.seenItems);
 }
 
-export function getVisibleLibraryItems() {
+export function getVisibleLibraryItems(): LibraryItem[] {
   if (state.activeLibraryView === 'recent') return state.recentItems;
   if (state.activeLibraryView === 'favorites') return state.favoriteItems;
   return state.libraryItems;
 }
 
-export function getLibraryFolderGroups(items = state.libraryItems) {
-  const groups = new Map();
+export function getLibraryFolderGroups(items: LibraryItem[] = state.libraryItems): LibraryFolderGroup[] {
+  const groups = new Map<string, LibraryFolderGroup>();
 
   items.map(normalizeLibraryItem).forEach((item) => {
     const directory = item.directory || '';
@@ -374,7 +347,7 @@ export function getLibraryFolderGroups(items = state.libraryItems) {
       });
     }
 
-    groups.get(directory).items.push(item);
+    groups.get(directory)?.items.push(item);
   });
 
   return Array.from(groups.values()).sort((a, b) => a.name.localeCompare(b.name, 'pt-BR'));
