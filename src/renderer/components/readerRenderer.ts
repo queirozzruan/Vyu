@@ -3,21 +3,21 @@ import { els } from '../utils/dom.js';
 
 let webtoonScrollFrame = 0;
 
-function getReadableStageSize() {
+function getReadableStageSize(): { width: number; height: number } {
   return {
     width: Math.max(320, (els.pageStage?.clientWidth || window.innerWidth) - 192),
     height: Math.max(360, (els.pageStage?.clientHeight || window.innerHeight) - 150)
   };
 }
 
-function getPageMediaElements() {
+function getPageMediaElements(): HTMLElement[] {
   return [
     els.pageImage,
-    ...Array.from(document.querySelectorAll('.webtoon-page-media'))
-  ].filter(Boolean);
+    ...Array.from(document.querySelectorAll<HTMLElement>('.webtoon-page-media'))
+  ];
 }
 
-export function updateTransform() {
+export function updateTransform(): void {
   const { width: stageWidth, height: stageHeight } = getReadableStageSize();
 
   getPageMediaElements().forEach((content) => {
@@ -33,7 +33,7 @@ export function updateTransform() {
   });
 }
 
-export function clearWebtoonPages() {
+export function clearWebtoonPages(): void {
   if (state.webtoonImageObserver) {
     state.webtoonImageObserver.disconnect();
     state.webtoonImageObserver = null;
@@ -42,7 +42,7 @@ export function clearWebtoonPages() {
   document.querySelectorAll('.webtoon-page').forEach((page) => page.remove());
 }
 
-export function createWebtoonPage(pageIndex, mediaElement) {
+export function createWebtoonPage(pageIndex: number, mediaElement: HTMLImageElement): HTMLDivElement {
   const page = document.createElement('div');
   page.className = 'webtoon-page';
   page.dataset.pageIndex = String(pageIndex);
@@ -56,14 +56,14 @@ export function createWebtoonPage(pageIndex, mediaElement) {
   return page;
 }
 
-export function syncReaderModeClass() {
+export function syncReaderModeClass(): void {
   els.readerScreen.classList.toggle('is-webtoon', state.readerMode === 'webtoon');
 }
 
-function syncWebtoonPageFromScroll() {
+function syncWebtoonPageFromScroll(): void {
   if (state.readerMode !== 'webtoon') return;
 
-  const pages = Array.from(document.querySelectorAll('.webtoon-page'));
+  const pages = Array.from(document.querySelectorAll<HTMLElement>('.webtoon-page'));
   if (pages.length === 0) return;
 
   const stageTop = els.pageStage.getBoundingClientRect().top;
@@ -85,7 +85,7 @@ function syncWebtoonPageFromScroll() {
   }
 }
 
-export function updateWebtoonPageFromScroll() {
+export function updateWebtoonPageFromScroll(): void {
   if (webtoonScrollFrame) return;
 
   webtoonScrollFrame = window.requestAnimationFrame(() => {
@@ -94,8 +94,8 @@ export function updateWebtoonPageFromScroll() {
   });
 }
 
-export function scrollToCurrentWebtoonPage() {
-  const page = document.querySelector(`.webtoon-page[data-page-index="${state.currentPageIndex}"]`);
+export function scrollToCurrentWebtoonPage(): void {
+  const page = document.querySelector<HTMLElement>(`.webtoon-page[data-page-index="${state.currentPageIndex}"]`);
   if (!page) return;
 
   const scrollToPage = () => {
@@ -109,7 +109,7 @@ export function scrollToCurrentWebtoonPage() {
   window.setTimeout(scrollToPage, 250);
 }
 
-export function resetView() {
+export function resetView(): void {
   updateZoomLabel();
   updateTransform();
   if (els.pageStage) {
@@ -118,7 +118,7 @@ export function resetView() {
   }
 }
 
-export function updateHeader() {
+export function updateHeader(): void {
   els.readerSeries.textContent = state.title || '-';
   const current = state.totalPages === 0 ? 0 : state.currentPageIndex + 1;
   const pCurrent = String(current).padStart(3, '0');
@@ -134,11 +134,11 @@ export function updateHeader() {
   }
 }
 
-export function updateZoomLabel() {
+export function updateZoomLabel(): void {
   els.zoomValue.textContent = `${Math.round(state.zoom * 100)}%`;
 }
 
-export function updateFitModeLabel() {
+export function updateFitModeLabel(): void {
   const isWidth = state.fitMode === 'width';
   if (els.fitModeBtn) {
     els.fitModeBtn.title = isWidth ? 'Ajustar pela altura' : 'Ajustar pela largura';
@@ -146,7 +146,7 @@ export function updateFitModeLabel() {
   }
 }
 
-export function updateNavButtons() {
+export function updateNavButtons(): void {
   const noPages = state.totalPages === 0;
   els.prevBtn.disabled = noPages || state.currentPageIndex <= 0;
   els.nextBtn.disabled = noPages || state.currentPageIndex >= state.totalPages - 1;

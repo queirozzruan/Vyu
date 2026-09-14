@@ -29,6 +29,8 @@ export const state: AppState = {
   readerMode: 'paged',
   panX: 0,
   panY: 0,
+  currentImageNaturalWidth: 0,
+  currentImageNaturalHeight: 0,
   libraryDirectories: [],
   libraryItems: [],
   activeLibraryView: 'collection',

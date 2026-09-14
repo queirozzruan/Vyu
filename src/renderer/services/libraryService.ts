@@ -1,7 +1,8 @@
 import { addLibraryDirectory, persistLibraryDirectories, reconcileLibraryCollections, state } from '../store/state.js';
 import { renderLibraryItems } from '../components/libraryRenderer.js';
+import type { ComicOpenHandler } from '../store/types';
 
-export async function refreshLibrary(onComicOpen) {
+export async function refreshLibrary(onComicOpen: ComicOpenHandler): Promise<void> {
   if (state.libraryDirectories.length === 0) {
     state.libraryItems = [];
     renderLibraryItems(onComicOpen);
@@ -21,7 +22,7 @@ export async function refreshLibrary(onComicOpen) {
   renderLibraryItems(onComicOpen);
 }
 
-export async function addDirectoryFlow(onComicOpen) {
+export async function addDirectoryFlow(onComicOpen: ComicOpenHandler): Promise<void> {
   const selectedDirectory = await window.mhq.openComicDirectory();
   if (!selectedDirectory) {
     return;

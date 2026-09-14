@@ -1,9 +1,11 @@
 import type { ComicPageRef, LibraryItem } from '../../shared/ipc';
+import type { PdfDocumentProxy, PdfJsModule } from '../types/pdfjs';
 
 export type LibraryViewName = 'recent' | 'favorites' | 'collection';
 export type LibraryTheme = 'dark' | 'light';
 export type ReaderModeName = 'paged' | 'webtoon';
 export type FitMode = 'height' | 'width';
+export type ComicOpenHandler = (filePath: string) => void | Promise<void>;
 
 export interface ReadingProgress {
   pageIndex: number;
@@ -30,8 +32,8 @@ export interface AppState {
   imagePageCache: Map<number, string>;
   imagePagePromises: Map<number, Promise<string | null>>;
   webtoonImageObserver: IntersectionObserver | null;
-  pdfDocument: unknown;
-  pdfjsLib: unknown;
+  pdfDocument: PdfDocumentProxy | null;
+  pdfjsLib: PdfJsModule | null;
   currentFilePath: string;
   currentPageIndex: number;
   totalPages: number;
@@ -43,6 +45,8 @@ export interface AppState {
   readerMode: ReaderModeName;
   panX: number;
   panY: number;
+  currentImageNaturalWidth: number;
+  currentImageNaturalHeight: number;
   libraryDirectories: string[];
   libraryItems: LibraryItem[];
   activeLibraryView: LibraryViewName;

@@ -30,7 +30,7 @@ export function createMainWindow(): BrowserWindow {
   if (rendererUrl) {
     mainWindow.loadURL(rendererUrl);
   } else {
-    mainWindow.loadFile(path.join(appRoot, 'out', 'renderer', 'index.html'));
+    mainWindow.loadFile(path.join(appRoot, 'out', 'renderer', 'renderer', 'index.html'));
   }
 
   return mainWindow;
