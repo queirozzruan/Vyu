@@ -26,6 +26,12 @@ export function createMainWindow(): BrowserWindow {
     mainWindow.show();
   });
 
-  mainWindow.loadFile(path.join(appRoot, 'renderer', 'index.html'));
+  const rendererUrl = process.env.ELECTRON_RENDERER_URL;
+  if (rendererUrl) {
+    mainWindow.loadURL(rendererUrl);
+  } else {
+    mainWindow.loadFile(path.join(appRoot, 'out', 'renderer', 'index.html'));
+  }
+
   return mainWindow;
 }

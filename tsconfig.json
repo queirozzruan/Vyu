@@ -10,7 +10,9 @@
     "esModuleInterop": true,
     "resolveJsonModule": true,
     "isolatedModules": true,
+    "allowJs": true,
+    "checkJs": false,
     "noEmit": true
   },
-  "include": ["electron.vite.config.ts", "src/**/*.ts", "src/**/*.d.ts"]
+  "include": ["electron.vite.config.ts", "src/**/*"]
 }
